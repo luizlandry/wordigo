@@ -22,7 +22,7 @@ import { AITutorCard } from "@/components/AITutorCard";
 
 type ChallengeWithOptions = typeof challenges.$inferSelect & {
   completed: boolean;
-  difficulty?: number;
+  difficulty?: number | null;
   challengeOptions: typeof challengeOptions.$inferSelect[];
 };
 

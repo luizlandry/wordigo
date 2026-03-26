@@ -2,10 +2,10 @@ import { challengeOptions } from "@/db/schema";
 import { cn } from "@/lib/utils";
 import { Card } from "./card";
 
-import { IeltsReading } from "@/components/ielts/IeltsReading";
-import { IeltsWriting } from "@/components/ielts/IeltsWriting";
-import { IeltsListening } from "@/components/ielts/IeltsListening";
-import { IeltsSpeaking } from "@/components/ielts/IeltsSpeaking";
+// Correct imports — these files are in app/lesson/ielts/ (same parent folder)
+import { IeltsWriting } from "./ielts/IeltsWriting";
+import { IeltsListening } from "./ielts/IeltsListening";
+import { IeltsSpeaking } from "./ielts/IeltsSpeaking";
 
 import { motion } from "framer-motion";
 
@@ -25,7 +25,6 @@ type Props = {
   selectedOption?: number;
   disabled?: boolean;
   type: ChallengeType;
-  // passage now comes from the challenge row, not options
   passage?: string | null;
 };
 
@@ -39,20 +38,25 @@ export const Challenge = ({
   passage,
 }: Props) => {
 
-  // ─── IELTS READING (multiple choice) ─────────────────────────────────
+  // ─── IELTS READING (multiple choice with passage) ─────────────────────
   if (type === "IELTS_READING") {
     return (
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
-        {/* Show the passage above the options */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-4"
+      >
+        {/* Reading passage box */}
         {passage && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl max-h-56 overflow-y-auto text-sm leading-relaxed text-neutral-700">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl max-h-56 overflow-y-auto text-sm leading-relaxed text-neutral-700">
             <p className="font-bold text-blue-700 mb-2 text-xs uppercase tracking-wide">
               Reading Passage
             </p>
             {passage}
           </div>
         )}
-        {/* Render as selectable cards */}
+
+        {/* Selectable answer cards */}
         <div className="grid gap-2 grid-cols-1">
           {options.map((option, i) => (
             <Card
@@ -77,17 +81,22 @@ export const Challenge = ({
   // ─── IELTS TRUE / FALSE / NOT GIVEN ──────────────────────────────────
   if (type === "IELTS_TFNG") {
     return (
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
-        {/* Show the passage */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col gap-4"
+      >
+        {/* Reading passage box */}
         {passage && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl max-h-56 overflow-y-auto text-sm leading-relaxed text-neutral-700">
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl max-h-56 overflow-y-auto text-sm leading-relaxed text-neutral-700">
             <p className="font-bold text-blue-700 mb-2 text-xs uppercase tracking-wide">
               Reading Passage
             </p>
             {passage}
           </div>
         )}
-        {/* T/F/NG buttons */}
+
+        {/* TRUE / FALSE / NOT GIVEN cards */}
         <div className="grid gap-2 grid-cols-1">
           {options.map((option, i) => (
             <Card
@@ -112,7 +121,10 @@ export const Challenge = ({
   // ─── IELTS WRITING ────────────────────────────────────────────────────
   if (type === "IELTS_WRITING") {
     return (
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
         <IeltsWriting onSubmit={onSelect} />
       </motion.div>
     );
@@ -121,7 +133,10 @@ export const Challenge = ({
   // ─── IELTS LISTENING ─────────────────────────────────────────────────
   if (type === "IELTS_LISTENING") {
     return (
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
         <IeltsListening
           audioSrc={options[0]?.audioSrc || ""}
           onSubmit={() => onSelect(options[0]?.id ?? 0)}
@@ -133,7 +148,10 @@ export const Challenge = ({
   // ─── IELTS SPEAKING ──────────────────────────────────────────────────
   if (type === "IELTS_SPEAKING") {
     return (
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
         <IeltsSpeaking onSubmit={onSelect} />
       </motion.div>
     );
