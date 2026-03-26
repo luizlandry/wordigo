@@ -58,6 +58,11 @@ const Sidebar = ({ className }: Props) => {
                     href="/shop"
                     iconSrc="/shop.svg"
                     />
+                    <Sidebaritem
+                    label="My Progress"
+                    href="/dashboard"
+                    iconSrc="/points.svg"
+                    />
 
 
 

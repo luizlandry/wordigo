@@ -22,31 +22,31 @@ type LessonWithCompletion = typeof lessons.$inferSelect & {
 };
 
 const LearnPage = async () => {
-  const userProgressData = await getUserProgress();
-  const courseProgressData = await getCourseProgress();
-  const lessonpercentageData = await getLessonPercentage();
-  const unitsData = await getUnits();
-  const userSubcriptionData = await getUserSubscription();
+  const userProgressData      = await getUserProgress();
+  const courseProgressData    = await getCourseProgress();
+  const lessonPercentageData  = await getLessonPercentage();
+  const unitsData             = await getUnits();
+  const userSubscriptionData  = await getUserSubscription();
 
-  const [
-    userProgress,
-    units,
-    courseProgress,
-    lessonPercentage,
-    userSubscription,
-  ] = await Promise.all([
-    userProgressData,
-    unitsData,
-    courseProgressData,
-    lessonpercentageData,
-    userSubcriptionData,
-  ]);
+  const [userProgress, units, courseProgress, lessonPercentage, userSubscription] =
+    await Promise.all([
+      userProgressData,
+      unitsData,
+      courseProgressData,
+      lessonPercentageData,
+      userSubscriptionData,
+    ]);
 
   if (!userProgress || !userProgress.activeCourse) {
     redirect("/courses");
   }
 
   const isPro = !!userSubscription?.isActive;
+
+  // Detect if this is the English (IELTS) course
+  const isIeltsCourse =
+    userProgress.activeCourse.title === "English (IELTS)" ||
+    userProgress.activeCourse.imageSrc === "/en.svg";
 
   return (
     <div className="flex flex-row-reverse gap-4 px-6">
@@ -58,14 +58,25 @@ const LearnPage = async () => {
           hasActiveSubscription={isPro}
           streak={userProgress.streak ?? 0}
         />
-
         {!isPro && <Promo />}
-
         <Quests points={userProgress.points} />
       </StickyWrapper>
 
       <FeedWrapper>
         <Header title={userProgress.activeCourse.title} />
+
+        {/* IELTS course info banner */}
+        {isIeltsCourse && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
+            <p className="font-bold mb-1">📚 IELTS Preparation Course</p>
+            <p>
+              Follow the units in order. Units 1–2 are{" "}
+              <strong>free</strong> (Band 4–5). Units 3–8 require{" "}
+              <strong>Pro</strong> and cover Listening, Writing, Speaking,
+              Advanced Reading, and a full Mock Exam (up to Band 9).
+            </p>
+          </div>
+        )}
 
         {units.length === 0 && (
           <div className="text-center mt-10 text-gray-500">
@@ -93,6 +104,9 @@ const LearnPage = async () => {
                   : undefined
               }
               activeLessonPercentage={lessonPercentage}
+              // Pass IELTS-specific props
+              isIeltsCourse={isIeltsCourse}
+              isPro={isPro}
             />
           </div>
         ))}

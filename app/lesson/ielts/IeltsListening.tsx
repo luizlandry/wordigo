@@ -2,6 +2,7 @@
 
 type IeltsListeningProps = {
   audioSrc: string;
+  onsubmit?: () => void;
 };
 
 export const IeltsListening = ({ audioSrc, onSubmit }: IeltsListeningProps & { onSubmit?: () => void }) => {
