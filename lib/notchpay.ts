@@ -23,7 +23,7 @@ export type InitPaymentParams = {
 // Change amount here to set your price in XAF
 export const PRO_PLAN: NotchPayPlan = {
   name: "notchpay_pro",
-  amount: 3000,
+  amount: 2000,
   currency: "XAF",
   description: "Wordigo Pro — Unlimited IELTS access, hearts & AI questions",
 };

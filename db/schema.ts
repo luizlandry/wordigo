@@ -21,7 +21,7 @@ export const coursesRelations = relations(courses, ({ many }) => ({
   units: many(units),
 }));
 
-// ─── UNITS ─────────────────────────────────────────────────────────────────
+// ─── UNITS ────────────────────────────────────────────────────────────────
 export const units = pgTable("units", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
@@ -40,7 +40,7 @@ export const unitsRelations = relations(units, ({ many, one }) => ({
   lessons: many(lessons),
 }));
 
-// ─── LESSONS ───────────────────────────────────────────────────────────────
+// ─── LESSONS ──────────────────────────────────────────────────────────────
 export const lessons = pgTable("lessons", {
   id: serial("id").primaryKey(),
   mode: text("mode").default("normal"),
@@ -62,7 +62,7 @@ export const lessonRelations = relations(lessons, ({ many, one }) => ({
   challenges: many(challenges),
 }));
 
-// ─── CHALLENGES ────────────────────────────────────────────────────────────
+// ─── CHALLENGES ───────────────────────────────────────────────────────────
 export const challengesEnum = pgEnum("type", [
   "SELECT",
   "ASSIST",
@@ -96,7 +96,7 @@ export const challengesRelations = relations(challenges, ({ one, many }) => ({
   challengeProgress: many(challengeProgress),
 }));
 
-// ─── CHALLENGE OPTIONS ─────────────────────────────────────────────────────
+// ─── CHALLENGE OPTIONS ────────────────────────────────────────────────────
 export const challengeOptions = pgTable("challenge_options", {
   id: serial("id").primaryKey(),
   challengeId: integer("challenge_id")
@@ -118,7 +118,7 @@ export const challengeOptionsRelations = relations(
   })
 );
 
-// ─── CHALLENGE PROGRESS ────────────────────────────────────────────────────
+// ─── CHALLENGE PROGRESS ───────────────────────────────────────────────────
 export const challengeProgress = pgTable("challenge_progress", {
   id: serial("id").primaryKey(),
   userId: text("user_id").notNull(),
@@ -138,7 +138,7 @@ export const challengeProgressRelations = relations(
   })
 );
 
-// ─── USER PROGRESS ─────────────────────────────────────────────────────────
+// ─── USER PROGRESS ────────────────────────────────────────────────────────
 export const userProgress = pgTable("user_progress", {
   userId: text("user_id").primaryKey(),
   userName: text("user_name").notNull().default("User"),
@@ -165,30 +165,16 @@ export const userProgressRelations = relations(userProgress, ({ one }) => ({
   }),
 }));
 
-// ─── USER SUBSCRIPTION ─────────────────────────────────────────────────────
-// Uses NotchPay naming — no Stripe references
-export const userSubscription = pgTable("user_subscription", {
+// ─── USER SUBSCRIPTION (NotchPay) ─────────────────────────────────────────
+export const userSubscription = pgTable("user_subcription", {
   id: serial("id").primaryKey(),
-
-  // Clerk user ID
   userId: text("user_id").notNull().unique(),
+  stripeCustomerId: text("stripe_customer_id").notNull().unique(),
+  stripeSubscriptionId: text("stripe_subscription_id").notNull().unique(),
+  stripePriceId: text("stripe_price_Id").notNull(),
+  stripeCurrentPerriodEnd: timestamp("stripe_current_period_end").notNull(),
 
-  // NotchPay customer email used during payment
-  notchpayCustomerId: text("notchpay_customer_id").notNull().unique(),
-
-  // NotchPay payment reference e.g. "wordigo-pro-userId-timestamp"
-  notchpayReference: text("notchpay_reference").notNull().unique(),
-
-  // Plan: "pro" | "basic"
-  planId: text("plan_id").notNull().default("pro"),
-
-  // Subscription expiry date (30 days after payment)
-  currentPeriodEnd: timestamp("current_period_end").notNull(),
-
-  // Is the subscription currently active?
+  // ✅ NEW FIELD: Set to true by webhook when payment is confirmed
+  // This replaces the old date-based isActive check completely
   isActive: boolean("is_active").notNull().default(false),
-
-  // Timestamps
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
