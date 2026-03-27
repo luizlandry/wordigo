@@ -1,80 +1,90 @@
 import { relations } from "drizzle-orm";
-import {boolean, integer,pgEnum,pgTable, serial, text, timestamp,} from "drizzle-orm/pg-core";
+import {
+  boolean,
+  integer,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
 
-
+// ─── COURSES ───────────────────────────────────────────────────────────────
 export const courses = pgTable("courses", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   imageSrc: text("image_src").notNull(),
 });
 
-// This is the primary coursesRelations definition
-export const coursesRelations = relations(courses, ({ many })=> ({
+export const coursesRelations = relations(courses, ({ many }) => ({
   userProgress: many(userProgress),
-  units: many(units), // Added units relation back in
+  units: many(units),
 }));
 
-// Original coursesRelations was redefined later, so I removed the duplicate here.
-
-export const units = pgTable( "units",{
+// ─── UNITS ─────────────────────────────────────────────────────────────────
+export const units = pgTable("units", {
   id: serial("id").primaryKey(),
-  title: text("title").notNull(),//unit 1
-  description: text("description").notNull(),// learnthe basics of spanish
-  courseId: integer("course_id").references(() => courses.id, { onDelete:
-    "cascade"}).notNull(),
-    order: integer("order").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  courseId: integer("course_id")
+    .references(() => courses.id, { onDelete: "cascade" })
+    .notNull(),
+  order: integer("order").notNull(),
 });
 
-// Renamed from lessonsRelations to unitsRelations to match the table name
- export const unitsRelations = relations(units, ({ many ,one }) => ({
+export const unitsRelations = relations(units, ({ many, one }) => ({
   course: one(courses, {
     fields: [units.courseId],
     references: [courses.id],
   }),
-  lessons:many(lessons),
+  lessons: many(lessons),
 }));
 
+// ─── LESSONS ───────────────────────────────────────────────────────────────
 export const lessons = pgTable("lessons", {
   id: serial("id").primaryKey(),
   mode: text("mode").default("normal"),
-  title: text("title").notNull(), // lesson 1
-  unitId:integer("unit_id").references(() => units.id, { onDelete: "cascade"}).notNull(),
+  title: text("title").notNull(),
+  unitId: integer("unit_id")
+    .references(() => units.id, { onDelete: "cascade" })
+    .notNull(),
   order: integer("order").notNull(),
-  streak:integer("streak").default(0), // Added streak column
+  streak: integer("streak").default(0),
   lastActive: timestamp("last_active"),
-  xp: integer("xp").default(0), // Added xp column
+  xp: integer("xp").default(0),
 });
 
-export const lessonRelations = relations(lessons,({many, one }) => ({
-   unit: one (units, { // Changed 'units' (plural) to 'unit' (singular) for the relation name
-    fields:[lessons.unitId],
-    references:[units.id],
-   }),
-    challenges: many (challenges),
+export const lessonRelations = relations(lessons, ({ many, one }) => ({
+  unit: one(units, {
+    fields: [lessons.unitId],
+    references: [units.id],
+  }),
+  challenges: many(challenges),
 }));
 
-export const challengesEnum=pgEnum("type",[
+// ─── CHALLENGES ────────────────────────────────────────────────────────────
+export const challengesEnum = pgEnum("type", [
   "SELECT",
-   "ASSIST",
-
-    // IELTS TYPES
+  "ASSIST",
   "IELTS_READING",
   "IELTS_WRITING",
   "IELTS_LISTENING",
   "IELTS_SPEAKING",
   "IELTS_TFNG",
-  ]);
+]);
 
 export const challenges = pgTable("challenges", {
   id: serial("id").primaryKey(),
   passage: text("passage"),
-audioSrc: text("audio_src"),
-  lessonId: integer("lesson_id").references(() => lessons.id, { onDelete: "cascade"}).notNull(),
-    type: challengesEnum("type").notNull(),
-    question: text("question").notNull(),
-    order: integer("order").notNull(),
-    isExam: boolean("is_exam").default(false),
-    difficulty: integer("difficulty").default(1), // Added difficulty column
+  audioSrc: text("audio_src"),
+  lessonId: integer("lesson_id")
+    .references(() => lessons.id, { onDelete: "cascade" })
+    .notNull(),
+  type: challengesEnum("type").notNull(),
+  question: text("question").notNull(),
+  order: integer("order").notNull(),
+  isExam: boolean("is_exam").default(false),
+  difficulty: integer("difficulty").default(1),
 });
 
 export const challengesRelations = relations(challenges, ({ one, many }) => ({
@@ -86,77 +96,99 @@ export const challengesRelations = relations(challenges, ({ one, many }) => ({
   challengeProgress: many(challengeProgress),
 }));
 
+// ─── CHALLENGE OPTIONS ─────────────────────────────────────────────────────
 export const challengeOptions = pgTable("challenge_options", {
   id: serial("id").primaryKey(),
-  challengeId: integer("challenge_id").references(() => challenges.id, { onDelete: "cascade" }).notNull(),
+  challengeId: integer("challenge_id")
+    .references(() => challenges.id, { onDelete: "cascade" })
+    .notNull(),
   text: text("text").notNull(),
   correct: boolean("correct").notNull(),
   imageSrc: text("image_src"),
   audioSrc: text("audio_src"),
 });
 
-export const challengeOptionsRelations = relations(challengeOptions, ({ one }) => ({
-  challenge: one(challenges, {
-    fields: [challengeOptions.challengeId],
-    references: [challenges.id],
-  }),
-}));
+export const challengeOptionsRelations = relations(
+  challengeOptions,
+  ({ one }) => ({
+    challenge: one(challenges, {
+      fields: [challengeOptions.challengeId],
+      references: [challenges.id],
+    }),
+  })
+);
 
-// Typo fix: Renamed "challengesProgress" to "challenge_progress"
+// ─── CHALLENGE PROGRESS ────────────────────────────────────────────────────
 export const challengeProgress = pgTable("challenge_progress", {
   id: serial("id").primaryKey(),
-  userId: text("user_id").notNull(),//TODO: confirm this doesn't break
-  challengeId: integer("challenge_id").references(() => challenges.id, { onDelete: "cascade"}).notNull(),
+  userId: text("user_id").notNull(),
+  challengeId: integer("challenge_id")
+    .references(() => challenges.id, { onDelete: "cascade" })
+    .notNull(),
   completed: boolean("completed").notNull().default(false),
 });
 
-export const challengeProgressRelations = relations(challengeProgress, ({ one }) => ({
-  challenge: one(challenges, {
-    fields: [challengeProgress.challengeId],
-    references: [challenges.id],
+export const challengeProgressRelations = relations(
+  challengeProgress,
+  ({ one }) => ({
+    challenge: one(challenges, {
+      fields: [challengeProgress.challengeId],
+      references: [challenges.id],
+    }),
+  })
+);
+
+// ─── USER PROGRESS ─────────────────────────────────────────────────────────
+export const userProgress = pgTable("user_progress", {
+  userId: text("user_id").primaryKey(),
+  userName: text("user_name").notNull().default("User"),
+  userImageSrc: text("user_image_src").notNull().default("/mascot.svg"),
+  activeCourseId: integer("active_course_id").references(() => courses.id, {
+    onDelete: "set null",
   }),
-}));
-
-
-// This definition was duplicated and caused an error. I am keeping the second, more complete one below,
-// but ensured that userProgress is defined *before* it is used in this relation.
-
-
-export const userProgress =pgTable("user_progress", { // Removed trailing comma in table name
-   userId: text("user_id").primaryKey(),
-   userName: text("user_name").notNull().default("User"),
-   userImageSrc: text("user_image_src").notNull().default("/mascot.svg"),
-   activeCourseId: integer("active_course_id").references(() => courses.id,
-   { onDelete: "set null" }), // Changed cascade to "set null" as the ID might not exist when a course is deleted if you want to keep the user record. Cascade is fine too, depending on your logic.
-   hearts:integer("hearts").notNull().default(5),
-   points:integer("points").notNull().default(0),
-   streak: integer("streak").default(0),
-   lastActive: timestamp("last_active"),
-   xp: integer("xp").default(0),
-   weakAreas: text("weak_areas").array().default([]),
-   weakGrammar: integer("weak_grammar").default(0),
-   weakVocabulary: integer("weak_vocabulary").default(0),
-   weakListening: integer("weak_listening").default(0),
-   weakReading: integer("weak_reading").default(0),
+  hearts: integer("hearts").notNull().default(5),
+  points: integer("points").notNull().default(0),
+  streak: integer("streak").default(0),
+  lastActive: timestamp("last_active"),
+  xp: integer("xp").default(0),
+  weakAreas: text("weak_areas").array().default([]),
+  weakGrammar: integer("weak_grammar").default(0),
+  weakVocabulary: integer("weak_vocabulary").default(0),
+  weakListening: integer("weak_listening").default(0),
+  weakReading: integer("weak_reading").default(0),
 });
 
-
-export const userProgressRelations = relations(userProgress, ({ one })   =>
-({
+export const userProgressRelations = relations(userProgress, ({ one }) => ({
   activeCourse: one(courses, {
     fields: [userProgress.activeCourseId],
     references: [courses.id],
   }),
 }));
 
+// ─── USER SUBSCRIPTION ─────────────────────────────────────────────────────
+// Uses NotchPay naming — no Stripe references
+export const userSubscription = pgTable("user_subscription", {
+  id: serial("id").primaryKey(),
 
-export const userSubscription = pgTable("user_subcription", {
-  id:serial("id").primaryKey(),
+  // Clerk user ID
   userId: text("user_id").notNull().unique(),
-  stripeCustomerId: text("stripe_customer_id").notNull().unique(),
-  stripeSubscriptionId:text("stripe_subscription_id").notNull().unique(),
-  stripePriceId: text("stripe_price_Id").notNull(),
-  stripeCurrentPerriodEnd: timestamp("stripe_current_period_end").notNull(),
+
+  // NotchPay customer email used during payment
+  notchpayCustomerId: text("notchpay_customer_id").notNull().unique(),
+
+  // NotchPay payment reference e.g. "wordigo-pro-userId-timestamp"
+  notchpayReference: text("notchpay_reference").notNull().unique(),
+
+  // Plan: "pro" | "basic"
+  planId: text("plan_id").notNull().default("pro"),
+
+  // Subscription expiry date (30 days after payment)
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+
+  // Is the subscription currently active?
+  isActive: boolean("is_active").notNull().default(false),
+
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
-
-

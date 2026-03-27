@@ -45,7 +45,7 @@ const LearnPage = async () => {
 
   // Detect if this is the English (IELTS) course
   const isIeltsCourse =
-    userProgress.activeCourse.title === "English (IELTS)" ||
+    userProgress.activeCourse.title === "English " ||
     userProgress.activeCourse.imageSrc === "/en.svg";
 
   return (

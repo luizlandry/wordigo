@@ -1,37 +1,70 @@
 import { NextResponse } from "next/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { absoluteUrl } from "@/lib/utils";
 
 export async function POST(req: Request) {
   try {
-    const { amount, userId } = await req.json();
+    const { userId } = await auth();
+    const user = await currentUser();
 
-    const response = await fetch("https://api-checkout.cinetpay.com/v2/payment", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        apikey: process.env.CINETPAY_API_KEY,
-        site_id: process.env.CINETPAY_SITE_ID,
-        transaction_id: Date.now().toString(),
-        amount,
-        currency: "XAF",
-        description: "Pro Subscription",
-        notify_url: "https://yourdomain.com/api/payment/webhook",
-        return_url: "https://yourdomain.com/payment-success",
-        channels: "MOBILE_MONEY",
-        lang: "en",
-        metadata: userId,
-      }),
-    });
+    if (!userId || !user) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const amount = body.amount ?? 2000; // Default 2000 XAF
+
+    const email =
+      user.emailAddresses?.[0]?.emailAddress ?? `${userId}@wordigo.app`;
+
+    const reference = `wordigo-pro-${userId}-${Date.now()}`;
+
+    const response = await fetch(
+      "https://api.notchpay.co/payments/initialize",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: process.env.NOTCHPAY_PUBLIC_KEY!,
+        },
+        body: JSON.stringify({
+          email,
+          amount,
+          currency: "XAF",
+          reference,
+          description: "Wordigo Pro — Unlimited IELTS Access + Hearts",
+          callback: absoluteUrl("/api/payment/webhook"),
+          return_url: absoluteUrl("/payment/success"),
+          meta: {
+            userId,
+            plan: "pro",
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("NotchPay error:", errorText);
+      return new NextResponse("Payment initialization failed", { status: 500 });
+    }
 
     const data = await response.json();
 
-    return NextResponse.json({
-      payment_url: data.data.payment_url,
-    });
+    // Extract payment URL from NotchPay response
+    const paymentUrl =
+      data?.transaction?.payment_url ??
+      data?.authorization_url ??
+      data?.data?.link;
 
+    if (!paymentUrl) {
+      console.error("NotchPay full response:", JSON.stringify(data));
+      return new NextResponse("No payment URL in response", { status: 500 });
+    }
+
+    return NextResponse.json({ payment_url: paymentUrl, reference });
   } catch (error) {
-    console.error(error);
-    return new NextResponse("Payment error", { status: 500 });
+    console.error("Payment route error:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

@@ -2,8 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import Image from "next/image";
-import { useCallback } from "react";
-import { useAudio, useKey } from "react-use";
+import { useCallback, useRef, useEffect } from "react";
+import { useKey } from "react-use";
 
 type Props = {
   id: number;
@@ -30,25 +30,21 @@ export const Card = ({
   status,
   type,
 }: Props) => {
-  /**
-   * FIX: We pass the audioSrc (or empty string) to useAudio.
-   * react-use needs the returned [audio] element to be rendered 
-   * regardless of whether the src is valid to avoid the "ref is empty" error.
-   */
-  const [audio, _state, controls] = useAudio({
-    src: audioSrc || "",
-  });
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleClick = useCallback(() => {
     if (disabled) return;
 
     // Only attempt to play if we actually have an audio source
-    if (audioSrc) {
-      controls.play();
+    if (audioSrc && audioRef.current) {
+      audioRef.current.play().catch((err) => {
+        // Handle autoplay restrictions gracefully
+        console.log("Audio playback failed:", err);
+      });
     }
     
     onClick();
-  }, [disabled, onClick, controls, audioSrc]);
+  }, [disabled, onClick, audioSrc]);
 
   useKey(shortcut, handleClick, {}, [handleClick]);
 
@@ -65,11 +61,16 @@ export const Card = ({
       )}
     >
       {/* 
-         FIX: Always render the audio element. 
-         If audioSrc is null, it renders an empty <audio> tag which satisfies useAudio() 
-         without triggering the "empty string src" warning from the previous error.
+         FIX: Only render the audio element if audioSrc exists
+         This prevents the empty src attribute warning
       */}
-      {audio}
+      {audioSrc && (
+        <audio
+          ref={audioRef}
+          src={audioSrc}
+          preload="none"
+        />
+      )}
       
       {imageSrc && (
         <div className="relative aspect-square mb-4 max-h-[80px] lg:max-h-[150px] w-full">

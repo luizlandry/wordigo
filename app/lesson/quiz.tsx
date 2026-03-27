@@ -251,7 +251,6 @@ export const Quiz = ({
     } else {
       // Wrong answer
       setWeaknesses((prev) => [...prev, challenge.type || "general"]);
-
       startTransition(() => {
         const isRealChallenge = challenge.id > 0;
 

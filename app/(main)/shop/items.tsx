@@ -1,104 +1,143 @@
 "use client";
 
 import { refillHearts } from "@/actions/user-progress";
-import { createStripeUrl } from "@/actions/user-subscription";
+import { createNotchPayUrl } from "@/actions/user-subscription";
 import { Button } from "@/components/ui/button";
 import { POINTS_TO_REFILL } from "@/constants";
 import Image from "next/image";
-import { useTransition } from 'react';
+import { useTransition } from "react";
 import { toast } from "sonner";
+import { Crown } from "lucide-react";
 
-type Props  = {
-    hearts: number;
-    points: number;
-    hasActiveSubscription: boolean;
+type Props = {
+  hearts: number;
+  points: number;
+  hasActiveSubscription: boolean;
 };
 
-export const Items = ({
-    hearts,
-    points,
-    hasActiveSubscription,
-}:Props) => {
-    const [pending, startTransition] = useTransition();
+export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
+  const [pending, startTransition] = useTransition();
 
-    const onRefillHearts = () => {
-        if (pending || hearts === 5 || points < POINTS_TO_REFILL) {
-            return;
-        }
+  // ── Refill hearts with points ──────────────────────────────────────
+  const onRefillHearts = () => {
+    if (pending || hearts === 5 || points < POINTS_TO_REFILL) return;
 
-        startTransition(() => {
-            refillHearts()
-            .catch(() => toast.error("Something went wrong"));
+    startTransition(() => {
+      refillHearts().catch(() => toast.error("Something went wrong"));
+    });
+  };
+
+  // ── Upgrade to Pro via NotchPay ────────────────────────────────────
+  const onUpgrade = () => {
+    if (hasActiveSubscription) {
+      // Already Pro — show info
+      toast.info("You already have an active Pro subscription!");
+      return;
+    }
+
+    startTransition(() => {
+      createNotchPayUrl()
+        .then((response) => {
+          if (response?.data) {
+            // Redirect to NotchPay checkout page
+            window.location.href = response.data;
+          } else {
+            toast.error("Could not get payment link");
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          toast.error("Payment initialization failed. Try again.");
         });
-    };
+    });
+  };
 
-    const onUpgrade = () => {
-        startTransition(() => {
-            createStripeUrl()
-            .then((response) => {
-                if (response.data) {
-                    window.location.href = response.data;
-                }
-            })
-            .catch(() => toast.error("Something went wrong"));
-        });
-    };
+  return (
+    <ul className="w-full">
 
-    return (
-        <ul className="w-full">
-            <div className="flex items-center w-full p-4 gap-x-4 border-l-2">
-                <Image 
-                src="/heart.svg"
-                alt="Heart"
-                height={60}
-                width={60}
-                />
-                <div className="flex-1">
-                    <p className="text-neutral-700 text-base lg:text-xl font-bold">
-                        Rrefill hearts
-                    </p>
-                </div>
-                <Button
-                onClick = {onRefillHearts}
-                disabled={pending || hearts === 5 || points< POINTS_TO_REFILL}
-                >
-                    {hearts === 5
-                    ? "full"
-                : (
-                    <div className="flex items-center">
-                        <Image 
-                        src="/points.svg"
-                        alt="Points"
-                        height={20}
-                        width={20}
-                        />
-                        <p>
-                            {POINTS_TO_REFILL}
-                        </p>
-                    </div>
-                )
-                }
-                </Button>
+      {/* ── Refill Hearts ─────────────────────────────────────────── */}
+      <div className="flex items-center w-full p-4 gap-x-4 border-t-2">
+        <Image src="/heart.svg" alt="Heart" height={60} width={60} />
+        <div className="flex-1">
+          <p className="text-neutral-700 text-base lg:text-xl font-bold">
+            Refill hearts
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Restore all 5 hearts
+          </p>
+        </div>
+        <Button
+          onClick={onRefillHearts}
+          disabled={pending || hearts === 5 || points < POINTS_TO_REFILL}
+        >
+          {hearts === 5 ? (
+            "Full"
+          ) : (
+            <div className="flex items-center gap-1">
+              <Image src="/points.svg" alt="Points" height={20} width={20} />
+              <p>{POINTS_TO_REFILL}</p>
             </div>
-            <div className="flex items-center w-full p-4 pt-8 gap border-t-2">
-                <Image 
-                src="/unlimited.svg"
-                alt="unlimited"
-                height={60}
-                width={60}
-                />
-                <div className="flex-1">
-                    <p className="text-neutral-700 text-base lg:text-xl font-bold">
-                        unlimited hearts
-                    </p>
-                </div>
-                <Button 
-                onClick={onUpgrade}
-                disabled={pending}
-                >
-                   { hasActiveSubscription ? "settings" : "upgrade" }
-                </Button>
-            </div>
-        </ul>
-    );
+          )}
+        </Button>
+      </div>
+
+      {/* ── Pro Subscription ──────────────────────────────────────── */}
+      <div className="flex items-center w-full p-4 pt-6 gap-x-4 border-t-2">
+        <Image src="/unlimited.svg" alt="Unlimited" height={60} width={60} />
+        <div className="flex-1">
+          <p className="text-neutral-700 text-base lg:text-xl font-bold flex items-center gap-2">
+            {hasActiveSubscription ? (
+              <>
+                <Crown className="w-5 h-5 text-yellow-500" />
+                Pro Active
+              </>
+            ) : (
+              "Unlimited Hearts"
+            )}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {hasActiveSubscription
+              ? "You have full access to all IELTS content"
+              : "Upgrade for unlimited hearts + full IELTS access"}
+          </p>
+        </div>
+        <Button
+          onClick={onUpgrade}
+          disabled={pending}
+          variant={hasActiveSubscription ? "default" : "super"}
+        >
+          {pending ? (
+            "Loading..."
+          ) : hasActiveSubscription ? (
+            "Active ✓"
+          ) : (
+            <span className="flex items-center gap-1">
+              <Crown className="w-4 h-4" />
+              Upgrade
+            </span>
+          )}
+        </Button>
+      </div>
+
+      {/* ── What Pro includes ─────────────────────────────────────── */}
+      {!hasActiveSubscription && (
+        <div className="mx-4 mt-2 mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+          <p className="text-xs font-bold text-yellow-700 mb-1 flex items-center gap-1">
+            <Crown className="w-3 h-3" /> Pro includes:
+          </p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-neutral-600">
+            <span>✅ All IELTS units</span>
+            <span>✅ Unlimited hearts</span>
+            <span>✅ Writing evaluation</span>
+            <span>✅ Speaking practice</span>
+            <span>✅ Mock exam</span>
+            <span>✅ AI questions</span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Pay with MTN Mobile Money or Orange Money · 2,000 XAF/month
+          </p>
+        </div>
+      )}
+    </ul>
+  );
 };

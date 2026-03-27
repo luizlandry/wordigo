@@ -26,7 +26,7 @@ const main = async () => {
       { id: 2, title: "Italian",         imageSrc: "/it.svg" },
       { id: 3, title: "French",          imageSrc: "/fr.svg" },
       { id: 4, title: "Croatian",        imageSrc: "/hr.svg" },
-      { id: 5, title: "English (IELTS)", imageSrc: "/en.svg" },
+      { id: 5, title: "English ", imageSrc: "/en.svg" },
     ]);
 
     // ─── SPANISH UNITS ─────────────────────────────────────────────────
