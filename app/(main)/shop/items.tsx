@@ -1,13 +1,14 @@
+// app/(main)/shop/items.tsx
 "use client";
 
 import { refillHearts } from "@/actions/user-progress";
-import { createNotchPayUrl } from "@/actions/user-subscription";
 import { Button } from "@/components/ui/button";
 import { POINTS_TO_REFILL } from "@/constants";
 import Image from "next/image";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { toast } from "sonner";
 import { Crown } from "lucide-react";
+import { PaymentMethodModal } from "@/components/PaymentMethodModal";
 
 type Props = {
   hearts: number;
@@ -17,6 +18,7 @@ type Props = {
 
 export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
   const [pending, startTransition] = useTransition();
+  const [showModal, setShowModal] = useState(false);
 
   // ── Refill hearts with points ──────────────────────────────────────
   const onRefillHearts = () => {
@@ -30,114 +32,104 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
   // ── Upgrade to Pro via NotchPay ────────────────────────────────────
   const onUpgrade = () => {
     if (hasActiveSubscription) {
-      // Already Pro — show info
       toast.info("You already have an active Pro subscription!");
       return;
     }
-
-    startTransition(() => {
-      createNotchPayUrl()
-        .then((response) => {
-          if (response?.data) {
-            // Redirect to NotchPay checkout page
-            window.location.href = response.data;
-          } else {
-            toast.error("Could not get payment link");
-          }
-        })
-        .catch((err) => {
-          console.error(err);
-          toast.error("Payment initialization failed. Try again.");
-        });
-    });
+    setShowModal(true);
   };
 
   return (
-    <ul className="w-full">
-
-      {/* ── Refill Hearts ─────────────────────────────────────────── */}
-      <div className="flex items-center w-full p-4 gap-x-4 border-t-2">
-        <Image src="/heart.svg" alt="Heart" height={60} width={60} />
-        <div className="flex-1">
-          <p className="text-neutral-700 text-base lg:text-xl font-bold">
-            Refill hearts
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Restore all 5 hearts
-          </p>
-        </div>
-        <Button
-          onClick={onRefillHearts}
-          disabled={pending || hearts === 5 || points < POINTS_TO_REFILL}
-        >
-          {hearts === 5 ? (
-            "Full"
-          ) : (
-            <div className="flex items-center gap-1">
-              <Image src="/points.svg" alt="Points" height={20} width={20} />
-              <p>{POINTS_TO_REFILL}</p>
-            </div>
-          )}
-        </Button>
-      </div>
-
-      {/* ── Pro Subscription ──────────────────────────────────────── */}
-      <div className="flex items-center w-full p-4 pt-6 gap-x-4 border-t-2">
-        <Image src="/unlimited.svg" alt="Unlimited" height={60} width={60} />
-        <div className="flex-1">
-          <p className="text-neutral-700 text-base lg:text-xl font-bold flex items-center gap-2">
-            {hasActiveSubscription ? (
-              <>
-                <Crown className="w-5 h-5 text-yellow-500" />
-                Pro Active
-              </>
-            ) : (
-              "Unlimited Hearts"
-            )}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {hasActiveSubscription
-              ? "You have full access to all IELTS content"
-              : "Upgrade for unlimited hearts + full IELTS access"}
-          </p>
-        </div>
-        <Button
-          onClick={onUpgrade}
-          disabled={pending}
-          variant={hasActiveSubscription ? "default" : "super"}
-        >
-          {pending ? (
-            "Loading..."
-          ) : hasActiveSubscription ? (
-            "Active ✓"
-          ) : (
-            <span className="flex items-center gap-1">
-              <Crown className="w-4 h-4" />
-              Upgrade
-            </span>
-          )}
-        </Button>
-      </div>
-
-      {/* ── What Pro includes ─────────────────────────────────────── */}
-      {!hasActiveSubscription && (
-        <div className="mx-4 mt-2 mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
-          <p className="text-xs font-bold text-yellow-700 mb-1 flex items-center gap-1">
-            <Crown className="w-3 h-3" /> Pro includes:
-          </p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-neutral-600">
-            <span>✅ All IELTS units</span>
-            <span>✅ Unlimited hearts</span>
-            <span>✅ Writing evaluation</span>
-            <span>✅ Speaking practice</span>
-            <span>✅ Mock exam</span>
-            <span>✅ AI questions</span>
+    <>
+      <ul className="w-full">
+        {/* ── Refill Hearts ─────────────────────────────────────────── */}
+        <div className="flex items-center w-full p-4 gap-x-4 border-t-2">
+          <Image src="/heart.svg" alt="Heart" height={60} width={60} />
+          <div className="flex-1">
+            <p className="text-neutral-700 text-base lg:text-xl font-bold">
+              Refill hearts
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Restore all 5 hearts
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            Pay with MTN Mobile Money or Orange Money · 2,000 XAF/month
-          </p>
+          <Button
+            onClick={onRefillHearts}
+            disabled={pending || hearts === 5 || points < POINTS_TO_REFILL}
+          >
+            {hearts === 5 ? (
+              "Full"
+            ) : (
+              <div className="flex items-center gap-1">
+                <Image src="/points.svg" alt="Points" height={20} width={20} />
+                <p>{POINTS_TO_REFILL}</p>
+              </div>
+            )}
+          </Button>
         </div>
-      )}
-    </ul>
+
+        {/* ── Pro Subscription ──────────────────────────────────────── */}
+        <div className="flex items-center w-full p-4 pt-6 gap-x-4 border-t-2">
+          <Image src="/unlimited.svg" alt="Unlimited" height={60} width={60} />
+          <div className="flex-1">
+            <p className="text-neutral-700 text-base lg:text-xl font-bold flex items-center gap-2">
+              {hasActiveSubscription ? (
+                <>
+                  <Crown className="w-5 h-5 text-yellow-500" />
+                  Pro Active
+                </>
+              ) : (
+                "Wordigo Pro"
+              )}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {hasActiveSubscription
+                ? "You have full access to all IELTS content"
+                : "Upgrade for unlimited hearts + full IELTS access"}
+            </p>
+          </div>
+          <Button
+            onClick={onUpgrade}
+            disabled={pending}
+            variant={hasActiveSubscription ? "default" : "super"}
+          >
+            {pending ? (
+              "Loading..."
+            ) : hasActiveSubscription ? (
+              "Active ✓"
+            ) : (
+              <span className="flex items-center gap-1">
+                <Crown className="w-4 h-4" />
+                Upgrade
+              </span>
+            )}
+          </Button>
+        </div>
+
+        {/* ── What Pro includes ─────────────────────────────────────── */}
+        {!hasActiveSubscription && (
+          <div className="mx-4 mt-2 mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
+            <p className="text-xs font-bold text-yellow-700 mb-1 flex items-center gap-1">
+              <Crown className="w-3 h-3" /> Wordigo Pro includes:
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-neutral-600">
+              <span>✅ All IELTS units</span>
+              <span>✅ Unlimited hearts</span>
+              <span>✅ Writing evaluation</span>
+              <span>✅ Speaking practice</span>
+              <span>✅ Mock exam</span>
+              <span>✅ AI questions</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Pay with MTN Mobile Money or Orange Money · 2,000 XAF/month
+            </p>
+          </div>
+        )}
+      </ul>
+
+      <PaymentMethodModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+      />
+    </>
   );
 };

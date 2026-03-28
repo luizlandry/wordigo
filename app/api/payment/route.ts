@@ -1,3 +1,4 @@
+// app/api/payment/route.ts
 import { NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { absoluteUrl } from "@/lib/utils";
@@ -12,12 +13,15 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const amount = body.amount ?? 2000; // Default 2000 XAF
+    const amount = body.amount ?? 2000;
 
     const email =
       user.emailAddresses?.[0]?.emailAddress ?? `${userId}@wordigo.app`;
 
     const reference = `wordigo-pro-${userId}-${Date.now()}`;
+
+    // ✅ Add channels here too
+   const channels = ["MTN_MONEY", "ORANGE_MONEY", "CARD"];
 
     const response = await fetch(
       "https://api.notchpay.co/payments/initialize",
@@ -25,7 +29,7 @@ export async function POST(req: Request) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: process.env.NOTCHPAY_PUBLIC_KEY!,
+          Authorization: process.env.NOTCHPAY_API_KEY!,
         },
         body: JSON.stringify({
           email,
@@ -35,6 +39,7 @@ export async function POST(req: Request) {
           description: "Wordigo Pro — Unlimited IELTS Access + Hearts",
           callback: absoluteUrl("/api/payment/webhook"),
           return_url: absoluteUrl("/payment/success"),
+          channels, // ✅ This is the key addition
           meta: {
             userId,
             plan: "pro",
@@ -51,7 +56,6 @@ export async function POST(req: Request) {
 
     const data = await response.json();
 
-    // Extract payment URL from NotchPay response
     const paymentUrl =
       data?.transaction?.payment_url ??
       data?.authorization_url ??

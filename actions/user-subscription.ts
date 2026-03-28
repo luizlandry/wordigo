@@ -1,3 +1,4 @@
+// actions/user-subscription.ts
 "use server";
 
 import { auth, currentUser } from "@clerk/nextjs/server";
@@ -17,20 +18,19 @@ export const createNotchPayUrl = async () => {
     throw new Error("Unauthorized");
   }
 
-  // Get user email from Clerk
   const email =
     user.emailAddresses?.[0]?.emailAddress ?? `${userId}@wordigo.app`;
 
-  // Check if user already has an active subscription
   const existingSubscription = await getUserSubscription();
 
   if (existingSubscription?.isActive) {
-    // Already Pro — just redirect to shop
     return { data: returnUrl };
   }
 
-  // ── Call NotchPay to initialize a payment ──────────────────────────
   const reference = `wordigo-pro-${userId}-${Date.now()}`;
+
+  // ✅ CRITICAL: Specify the mobile money channels
+ const channels = ["MTN_MONEY", "ORANGE_MONEY", "CARD"];
 
   const response = await fetch(
     "https://api.notchpay.co/payments/initialize",
@@ -38,16 +38,17 @@ export const createNotchPayUrl = async () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: process.env.NOTCHPAY_PUBLIC_KEY!,
+        Authorization: process.env.NOTCHPAY_API_KEY!,
       },
       body: JSON.stringify({
         email,
-        amount: 2000,          // 2000 XAF (~$3.50 USD) — change as needed
+        amount: 2000,
         currency: "XAF",
         reference,
         description: "Wordigo Pro — Unlimited IELTS Access + Hearts",
         callback: absoluteUrl("/api/payment/webhook"),
         return_url: absoluteUrl("/payment/success"),
+        channels :["MTN_MONEY", "ORANGE_MONEY"],
         meta: {
           userId,
           plan: "pro",
@@ -63,8 +64,8 @@ export const createNotchPayUrl = async () => {
   }
 
   const data = await response.json();
+  console.log("NotchPay channels response:", data); // Debug: check if channels were accepted
 
-  // NotchPay returns the checkout URL in data.authorization_url
   const paymentUrl =
     data?.transaction?.payment_url ??
     data?.authorization_url ??
@@ -75,7 +76,6 @@ export const createNotchPayUrl = async () => {
     throw new Error("No payment URL returned from NotchPay");
   }
 
-  // Save a pending subscription record so we can update it on webhook
   const existing = await db.query.userSubscription.findFirst({
     where: eq(userSubscription.userId, userId),
   });
@@ -83,12 +83,11 @@ export const createNotchPayUrl = async () => {
   if (!existing) {
     await db.insert(userSubscription).values({
       userId,
-      // Temporary values — webhook will update these
       stripeCustomerId: `notchpay_${reference}`,
       stripeSubscriptionId: reference,
       stripePriceId: "notchpay_pro",
       stripeCurrentPerriodEnd: new Date(
-        Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 days
+        Date.now() + 30 * 24 * 60 * 60 * 1000
       ),
       isActive: false,
     } as any);
@@ -97,5 +96,4 @@ export const createNotchPayUrl = async () => {
   return { data: paymentUrl };
 };
 
-// Keep createStripeUrl as alias so existing imports don't break
 export const createStripeUrl = createNotchPayUrl;
