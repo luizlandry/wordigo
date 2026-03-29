@@ -20,9 +20,6 @@ export async function POST(req: Request) {
 
     const reference = `wordigo-pro-${userId}-${Date.now()}`;
 
-    // ✅ Add channels here too
-   const channels = ["MTN_MONEY", "ORANGE_MONEY", "CARD"];
-
     const response = await fetch(
       "https://api.notchpay.co/payments/initialize",
       {
@@ -37,9 +34,11 @@ export async function POST(req: Request) {
           currency: "XAF",
           reference,
           description: "Wordigo Pro — Unlimited IELTS Access + Hearts",
+          // callback = server-to-server webhook (works in production)
           callback: absoluteUrl("/api/payment/webhook"),
-          return_url: absoluteUrl("/payment/success"),
-          channels, // ✅ This is the key addition
+          // ✅ FIXED: return_url goes through webhook GET handler to activate subscription
+          return_url: absoluteUrl("/api/payment/webhook"),
+          channels: ["MTN_MONEY", "ORANGE_MONEY"],
           meta: {
             userId,
             plan: "pro",

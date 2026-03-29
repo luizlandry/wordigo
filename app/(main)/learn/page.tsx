@@ -1,8 +1,8 @@
-import { redirect } from "next/navigation";
-
+// app/(main)/learn/page.tsx
+import { StickyWrapper } from "@/components/sticky-wrapper";
 import { FeedWrapper } from "@/components/feed-wrapper";
 import { UserProgress } from "@/components/user-progress";
-import { StickyWrapper } from "@/components/sticky-wrapper";
+import { StickyWrapper as _s } from "@/components/sticky-wrapper";
 import { lessons, units as unitsSchema } from "@/db/schema";
 import { Promo } from "@/components/promo";
 import {
@@ -12,7 +12,7 @@ import {
   getUserProgress,
   getUserSubscription,
 } from "@/db/queries";
-
+import { redirect } from "next/navigation";
 import { Header } from "./header";
 import { Unit } from "./unit";
 import { Quests } from "@/components/quests";
@@ -22,19 +22,15 @@ type LessonWithCompletion = typeof lessons.$inferSelect & {
 };
 
 const LearnPage = async () => {
-  const userProgressData      = await getUserProgress();
-  const courseProgressData    = await getCourseProgress();
-  const lessonPercentageData  = await getLessonPercentage();
-  const unitsData             = await getUnits();
-  const userSubscriptionData  = await getUserSubscription();
-
+  // ✅ FIX: Removed double-await. Call functions first (no await), then
+  // await them all at once in Promise.all for true parallel fetching.
   const [userProgress, units, courseProgress, lessonPercentage, userSubscription] =
     await Promise.all([
-      userProgressData,
-      unitsData,
-      courseProgressData,
-      lessonPercentageData,
-      userSubscriptionData,
+      getUserProgress(),
+      getUnits(),
+      getCourseProgress(),
+      getLessonPercentage(),
+      getUserSubscription(),
     ]);
 
   if (!userProgress || !userProgress.activeCourse) {
@@ -58,6 +54,7 @@ const LearnPage = async () => {
           hasActiveSubscription={isPro}
           streak={userProgress.streak ?? 0}
         />
+        {/* ✅ "Upgrade Today" banner hides automatically when isPro is true */}
         {!isPro && <Promo />}
         <Quests points={userProgress.points} />
       </StickyWrapper>
@@ -65,7 +62,6 @@ const LearnPage = async () => {
       <FeedWrapper>
         <Header title={userProgress.activeCourse.title} />
 
-        {/* IELTS course info banner */}
         {isIeltsCourse && (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
             <p className="font-bold mb-1">📚 IELTS Preparation Course</p>
@@ -104,7 +100,6 @@ const LearnPage = async () => {
                   : undefined
               }
               activeLessonPercentage={lessonPercentage}
-              // Pass IELTS-specific props
               isIeltsCourse={isIeltsCourse}
               isPro={isPro}
             />

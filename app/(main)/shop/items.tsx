@@ -7,8 +7,9 @@ import { POINTS_TO_REFILL } from "@/constants";
 import Image from "next/image";
 import { useTransition, useState } from "react";
 import { toast } from "sonner";
-import { Crown } from "lucide-react";
+import { Crown, Settings } from "lucide-react";
 import { PaymentMethodModal } from "@/components/PaymentMethodModal";
+import { useRouter } from "next/navigation";
 
 type Props = {
   hearts: number;
@@ -19,20 +20,21 @@ type Props = {
 export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
+  const router = useRouter();
 
-  // ── Refill hearts with points ──────────────────────────────────────
+  // ── Refill hearts ──────────────────────────────────────────────────────────
   const onRefillHearts = () => {
     if (pending || hearts === 5 || points < POINTS_TO_REFILL) return;
-
     startTransition(() => {
       refillHearts().catch(() => toast.error("Something went wrong"));
     });
   };
 
-  // ── Upgrade to Pro via NotchPay ────────────────────────────────────
-  const onUpgrade = () => {
+  // ── Upgrade or manage subscription ────────────────────────────────────────
+  const onUpgradeOrManage = () => {
     if (hasActiveSubscription) {
-      toast.info("You already have an active Pro subscription!");
+      // ✅ Pro users → go to subscription settings
+      router.push("/settings");
       return;
     }
     setShowModal(true);
@@ -41,16 +43,15 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
   return (
     <>
       <ul className="w-full">
-        {/* ── Refill Hearts ─────────────────────────────────────────── */}
+
+        {/* ── Refill Hearts ──────────────────────────────────────────────── */}
         <div className="flex items-center w-full p-4 gap-x-4 border-t-2">
           <Image src="/heart.svg" alt="Heart" height={60} width={60} />
           <div className="flex-1">
             <p className="text-neutral-700 text-base lg:text-xl font-bold">
               Refill hearts
             </p>
-            <p className="text-sm text-muted-foreground">
-              Restore all 5 hearts
-            </p>
+            <p className="text-sm text-muted-foreground">Restore all 5 hearts</p>
           </div>
           <Button
             onClick={onRefillHearts}
@@ -67,7 +68,7 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
           </Button>
         </div>
 
-        {/* ── Pro Subscription ──────────────────────────────────────── */}
+        {/* ── Pro Subscription ───────────────────────────────────────────── */}
         <div className="flex items-center w-full p-4 pt-6 gap-x-4 border-t-2">
           <Image src="/unlimited.svg" alt="Unlimited" height={60} width={60} />
           <div className="flex-1">
@@ -87,15 +88,21 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
                 : "Upgrade for unlimited hearts + full IELTS access"}
             </p>
           </div>
+
+          {/* ✅ FIX: Show "Settings" button when Pro, "Upgrade" when not */}
           <Button
-            onClick={onUpgrade}
+            onClick={onUpgradeOrManage}
             disabled={pending}
-            variant={hasActiveSubscription ? "default" : "super"}
+            variant={hasActiveSubscription ? "ghost" : "super"}
+            className={hasActiveSubscription ? "border border-input" : ""}
           >
             {pending ? (
               "Loading..."
             ) : hasActiveSubscription ? (
-              "Active ✓"
+              <span className="flex items-center gap-1">
+                <Settings className="w-4 h-4" />
+                Settings
+              </span>
             ) : (
               <span className="flex items-center gap-1">
                 <Crown className="w-4 h-4" />
@@ -105,7 +112,7 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
           </Button>
         </div>
 
-        {/* ── What Pro includes ─────────────────────────────────────── */}
+        {/* ── What Pro includes (only shown when NOT Pro) ────────────────── */}
         {!hasActiveSubscription && (
           <div className="mx-4 mt-2 mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
             <p className="text-xs font-bold text-yellow-700 mb-1 flex items-center gap-1">
