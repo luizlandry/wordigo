@@ -10,7 +10,6 @@ import { Promo } from "@/components/promo";
 import { Quests } from "@/components/quests";
 
 const ShopPage = async () => {
-  // ✅ FIX: Fetch both in parallel correctly (removed the broken double-await pattern)
   const [userProgress, userSubscription] = await Promise.all([
     getUserProgress(),
     getUserSubscription(),
@@ -22,10 +21,20 @@ const ShopPage = async () => {
 
   const isPro = !!userSubscription?.isActive;
 
+  // Check if user cancelled but their paid period hasn't expired yet
+  const periodEnd = userSubscription?.stripeCurrentPerriodEnd
+    ? new Date(userSubscription.stripeCurrentPerriodEnd)
+    : null;
+
+  const isCancelledButValid =
+    !isPro &&
+    !!userSubscription &&
+    !!periodEnd &&
+    periodEnd > new Date();
+
   return (
     <div className="flex flex-row-reverse gap-12 px-6">
       <StickyWrapper>
-        {/* ✅ FIX: Added missing streak prop */}
         <UserProgress
           activeCourse={userProgress.activeCourse}
           hearts={userProgress.hearts}
@@ -33,12 +42,11 @@ const ShopPage = async () => {
           hasActiveSubscription={isPro}
           streak={userProgress.streak ?? 0}
         />
-        {/* ✅ Hide the Promo widget when user is already Pro */}
         {!isPro && <Promo />}
         <Quests points={userProgress.points} />
       </StickyWrapper>
       <FeedWrapper>
-        <div className="full flex flex-col items-center">
+        <div className="w-full flex flex-col items-center">
           <Image
             src="/shop.svg"
             alt="shop"
@@ -55,6 +63,8 @@ const ShopPage = async () => {
             hearts={userProgress.hearts}
             points={userProgress.points}
             hasActiveSubscription={isPro}
+            isCancelledButValid={isCancelledButValid}
+            periodEnd={periodEnd}
           />
         </div>
       </FeedWrapper>

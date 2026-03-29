@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { cancelSubscription } from '@/actions/cancel-subscription';
+import { cancelSubscription } from '../../../actions/cancel-subscription';
 
 export const CancelSubscriptionButton = () => {
   const [confirmed, setConfirmed] = useState(false);

@@ -50,7 +50,7 @@ const SettingsPage = async () => {
             width={90}
           />
           <h1 className="text-center font-bold text-neutral-800 text-2xl my-6">
-            Subscription Settings
+             Settings
           </h1>
 
           {isPro ? (

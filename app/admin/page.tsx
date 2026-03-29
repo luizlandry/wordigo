@@ -1,17 +1,17 @@
-import  dynamic from "next/dynamic";
+// app/admin/page.tsx
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/admin";
+import { AdminClient } from "./admin-client";
 
-const App = dynamic(() => import ("./app"), { ssr:false }); 
+// isAdmin is now async because auth() from @clerk/nextjs/server is async
+const AdminPage = async () => {
+  const admin = await isAdmin();
 
-const AdminPage =   () => { 
-    if (!isAdmin()) {
-        redirect("/")
-    }
+  if (!admin) {
+    redirect("/");
+  }
 
-    return (
-        <App />
-    );
+  return <AdminClient />;
 };
 
 export default AdminPage;

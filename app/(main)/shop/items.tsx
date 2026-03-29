@@ -2,12 +2,13 @@
 "use client";
 
 import { refillHearts } from "@/actions/user-progress";
+import { createNotchPayUrl } from "@/actions/user-subscription";
 import { Button } from "@/components/ui/button";
 import { POINTS_TO_REFILL } from "@/constants";
 import Image from "next/image";
 import { useTransition, useState } from "react";
 import { toast } from "sonner";
-import { Crown, Settings } from "lucide-react";
+import { Crown, Settings, RefreshCw } from "lucide-react";
 import { PaymentMethodModal } from "@/components/PaymentMethodModal";
 import { useRouter } from "next/navigation";
 
@@ -15,9 +16,17 @@ type Props = {
   hearts: number;
   points: number;
   hasActiveSubscription: boolean;
+  isCancelledButValid: boolean;
+  periodEnd: Date | null;
 };
 
-export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
+export const Items = ({
+  hearts,
+  points,
+  hasActiveSubscription,
+  isCancelledButValid,
+  periodEnd,
+}: Props) => {
   const [pending, startTransition] = useTransition();
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
@@ -30,15 +39,35 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
     });
   };
 
-  // ── Upgrade or manage subscription ────────────────────────────────────────
+  // ── Reactivate cancelled subscription (no payment needed) ─────────────────
+  const onReactivate = () => {
+    startTransition(() => {
+      createNotchPayUrl()
+        .then(() => {
+          toast.success("🎉 Pro reactivated! Welcome back.");
+          router.refresh();
+        })
+        .catch(() => toast.error("Something went wrong. Please try again."));
+    });
+  };
+
+  // ── Upgrade (new payment) or go to settings ────────────────────────────────
   const onUpgradeOrManage = () => {
     if (hasActiveSubscription) {
-      // ✅ Pro users → go to subscription settings
       router.push("/settings");
       return;
     }
     setShowModal(true);
   };
+
+  // ── Format the period end date ─────────────────────────────────────────────
+  const periodEndText = periodEnd
+    ? periodEnd.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : null;
 
   return (
     <>
@@ -51,7 +80,9 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
             <p className="text-neutral-700 text-base lg:text-xl font-bold">
               Refill hearts
             </p>
-            <p className="text-sm text-muted-foreground">Restore all 5 hearts</p>
+            <p className="text-sm text-muted-foreground">
+              Restore all 5 hearts
+            </p>
           </div>
           <Button
             onClick={onRefillHearts}
@@ -78,6 +109,11 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
                   <Crown className="w-5 h-5 text-yellow-500" />
                   Pro Active
                 </>
+              ) : isCancelledButValid ? (
+                <>
+                  <Crown className="w-5 h-5 text-orange-400" />
+                  Pro Cancelled
+                </>
               ) : (
                 "Wordigo Pro"
               )}
@@ -85,35 +121,77 @@ export const Items = ({ hearts, points, hasActiveSubscription }: Props) => {
             <p className="text-sm text-muted-foreground">
               {hasActiveSubscription
                 ? "You have full access to all IELTS content"
+                : isCancelledButValid
+                ? `Access until ${periodEndText} — reactivate for free`
                 : "Upgrade for unlimited hearts + full IELTS access"}
             </p>
           </div>
 
-          {/* ✅ FIX: Show "Settings" button when Pro, "Upgrade" when not */}
-          <Button
-            onClick={onUpgradeOrManage}
-            disabled={pending}
-            variant={hasActiveSubscription ? "ghost" : "super"}
-            className={hasActiveSubscription ? "border border-input" : ""}
-          >
-            {pending ? (
-              "Loading..."
-            ) : hasActiveSubscription ? (
+          {/* ── Button changes based on subscription state ─────────────────── */}
+          {hasActiveSubscription ? (
+            // Active Pro → Settings
+            <Button
+              onClick={onUpgradeOrManage}
+              disabled={pending}
+              variant="ghost"
+              className="border border-input"
+            >
               <span className="flex items-center gap-1">
                 <Settings className="w-4 h-4" />
                 Settings
               </span>
-            ) : (
-              <span className="flex items-center gap-1">
-                <Crown className="w-4 h-4" />
-                Upgrade
-              </span>
-            )}
-          </Button>
+            </Button>
+          ) : isCancelledButValid ? (
+            // Cancelled but still in paid period → Reactivate for free
+            <Button
+              onClick={onReactivate}
+              disabled={pending}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              {pending ? (
+                "Loading..."
+              ) : (
+                <span className="flex items-center gap-1">
+                  <RefreshCw className="w-4 h-4" />
+                  Reactivate
+                </span>
+              )}
+            </Button>
+          ) : (
+            // No subscription or period expired → Pay to upgrade
+            <Button
+              onClick={onUpgradeOrManage}
+              disabled={pending}
+              variant="super"
+            >
+              {pending ? (
+                "Loading..."
+              ) : (
+                <span className="flex items-center gap-1">
+                  <Crown className="w-4 h-4" />
+                  Upgrade
+                </span>
+              )}
+            </Button>
+          )}
         </div>
 
-        {/* ── What Pro includes (only shown when NOT Pro) ────────────────── */}
-        {!hasActiveSubscription && (
+        {/* ── Reactivation notice ─────────────────────────────────────────── */}
+        {isCancelledButValid && periodEndText && (
+          <div className="mx-4 mt-2 mb-4 p-3 bg-orange-50 border border-orange-200 rounded-xl">
+            <p className="text-xs font-bold text-orange-700 mb-1 flex items-center gap-1">
+              <RefreshCw className="w-3 h-3" /> You still have Pro access
+            </p>
+            <p className="text-xs text-neutral-600">
+              Your subscription was cancelled but your paid period runs until{" "}
+              <strong>{periodEndText}</strong>. Click{" "}
+              <strong>Reactivate</strong> to restore Pro — no payment needed.
+            </p>
+          </div>
+        )}
+
+        {/* ── What Pro includes (only when not Pro and period fully expired) ─ */}
+        {!hasActiveSubscription && !isCancelledButValid && (
           <div className="mx-4 mt-2 mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl">
             <p className="text-xs font-bold text-yellow-700 mb-1 flex items-center gap-1">
               <Crown className="w-3 h-3" /> Wordigo Pro includes:

@@ -7,14 +7,12 @@ import { getUserSubscription } from "@/db/queries";
 import { db } from "@/db/drizzle";
 import { userSubscription } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 
 // The app always runs on localhost — used for internal navigation
 const returnUrl = absoluteUrl("/shop");
 
-// ── Build the NotchPay callback/return URL ─────────────────────────────────
-// If NOTCHPAY_CALLBACK_URL is set (ngrok in dev, real domain in prod),
-// use it for the NotchPay redirect. Otherwise fall back to NEXT_PUBLIC_APP_URL.
-// This way your app stays on localhost:3000 but NotchPay can reach you.
+// Use ngrok URL for NotchPay callbacks in dev, real domain in prod
 function getNotchPayBaseUrl(): string {
   return (
     process.env.NOTCHPAY_CALLBACK_URL ??
@@ -40,10 +38,45 @@ export const createNotchPayUrl = async (paymentMethod?: string) => {
 
   const existingSubscription = await getUserSubscription();
 
+  // ── Already fully active ───────────────────────────────────────────────
   if (existingSubscription?.isActive) {
     return { data: returnUrl };
   }
 
+  // ── REACTIVATION: Cancelled but period not yet expired ─────────────────
+  // The user cancelled but still has time left on their paid period.
+  // Just flip isActive back to true — no new payment needed.
+  if (existingSubscription && !existingSubscription.isActive) {
+    const periodEnd = existingSubscription.stripeCurrentPerriodEnd
+      ? new Date(existingSubscription.stripeCurrentPerriodEnd)
+      : null;
+
+    const stillInPeriod = periodEnd && periodEnd > new Date();
+
+    if (stillInPeriod) {
+      console.log(
+        `♻️ Reactivating cancelled Pro for user ${userId} — period ends ${periodEnd.toISOString()}`
+      );
+
+      await db
+        .update(userSubscription)
+        .set({ isActive: true })
+        .where(eq(userSubscription.userId, userId));
+
+      // Bust cache so all pages reflect Pro status immediately
+      revalidatePath("/shop");
+      revalidatePath("/learn");
+      revalidatePath("/leaderboard");
+      revalidatePath("/quests");
+      revalidatePath("/settings");
+      revalidatePath("/");
+
+      // Return shop URL — no payment page needed
+      return { data: returnUrl };
+    }
+  }
+
+  // ── NEW PAYMENT: No subscription or period has expired ─────────────────
   const reference = `wordigo-pro-${userId}-${Date.now()}`;
 
   const channelMap: Record<string, string[]> = {
@@ -55,14 +88,11 @@ export const createNotchPayUrl = async (paymentMethod?: string) => {
     ? (channelMap[paymentMethod] ?? ["MTN_MONEY", "ORANGE_MONEY"])
     : ["MTN_MONEY", "ORANGE_MONEY"];
 
-  // ✅ Uses ngrok URL for NotchPay so it can redirect back to your machine.
-  // After activation the webhook handler redirects to localhost:3000/payment/success.
   const webhookCallbackUrl = notchPayUrl("/api/payment/webhook");
 
   console.log("🚀 Initializing NotchPay payment:", {
     reference,
     webhookCallbackUrl,
-    appUrl: process.env.NEXT_PUBLIC_APP_URL,
   });
 
   const notchPayBody: Record<string, unknown> = {
@@ -71,9 +101,7 @@ export const createNotchPayUrl = async (paymentMethod?: string) => {
     currency: "XAF",
     reference,
     description: "Wordigo Pro — Unlimited IELTS Access + Hearts",
-    // NotchPay redirects user here after payment (must be public HTTPS)
     return_url: webhookCallbackUrl,
-    // Server-to-server webhook (also needs public HTTPS)
     callback: webhookCallbackUrl,
     channels,
     meta: {
