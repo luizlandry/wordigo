@@ -1,4 +1,4 @@
-// app/lesson/question-speaker.tsx
+// app/lesson/passage-speaker.tsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -6,51 +6,55 @@ import { Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
-  text: string;        // The question text to speak
+  text: string;        // The passage text to speak
   lang?: string;       // BCP-47 language tag, e.g. "en-US". Defaults to "en-US"
   className?: string;
 };
 
 /**
- * QuestionSpeaker
+ * PassageSpeaker
  *
- * Renders a small speaker icon button that reads `text` aloud using the
- * browser's built-in Web Speech API (SpeechSynthesis). No API key, no audio
- * files, no backend required — it works in every modern browser for free.
- *
- * Behaviour:
- *  - Click once  → starts reading
- *  - Click again → stops reading (toggle)
- *  - Automatically resets the icon when speech finishes
- *  - On the very first render it reads the question automatically so the
- *    user hears it without having to press anything
+ * Renders a speaker icon button that reads `text` aloud when clicked.
+ * Uses a softer, more gentle voice (prefers female voices like Google UK English Female)
  */
-export const QuestionSpeaker = ({ text, lang = "en-US", className }: Props) => {
+export const PassageSpeaker = ({ text, lang = "en-US", className }: Props) => {
   const [speaking, setSpeaking] = useState(false);
   const [supported, setSupported] = useState(true);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [voicesLoaded, setVoicesLoaded] = useState(false);
 
-  // Check browser support and load voices
+  // Check browser support on mount
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) {
       setSupported(false);
       return;
     }
 
+    // Load available voices
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       if (voices.length > 0) {
         setVoicesLoaded(true);
         
         // Priority order for softer/gentler voices:
+        // 1. Google UK English Female (very natural, soft)
+        // 2. Google US English Female
+        // 3. Samantha (macOS - very gentle)
+        // 4. Any female voice with "Female" in name
+        // 5. Any English voice with "Google" in name
+        // 6. Fallback to first English voice
+        
         const preferredVoices = [
+          // Google voices (Chrome) - very natural
           { name: "Google UK English Female", priority: 1 },
           { name: "Google US English Female", priority: 2 },
-          { name: "Samantha", priority: 3 },
-          { name: "Victoria", priority: 4 },
           { name: "Google UK English Male", priority: 5 },
           { name: "Google US English Male", priority: 6 },
+          // macOS voices - Samantha is very gentle
+          { name: "Samantha", priority: 3 },
+          { name: "Victoria", priority: 4 },
+          { name: "Karen", priority: 7 },
+          { name: "Moira", priority: 8 },
         ];
 
         let bestVoice: SpeechSynthesisVoice | null = null;
@@ -66,16 +70,19 @@ export const QuestionSpeaker = ({ text, lang = "en-US", className }: Props) => {
           }
         }
 
+        // If no preferred voice found, try to find any female voice
         if (!bestVoice) {
           const femaleVoice = voices.find(
             (v) => v.lang.startsWith("en") && 
                   (v.name.toLowerCase().includes("female") || 
                    v.name.toLowerCase().includes("samantha") ||
-                   v.name.toLowerCase().includes("victoria"))
+                   v.name.toLowerCase().includes("victoria") ||
+                   v.name.toLowerCase().includes("karen"))
           );
           if (femaleVoice) bestVoice = femaleVoice;
         }
 
+        // If still no voice, use any English voice
         if (!bestVoice) {
           bestVoice = voices.find((v) => v.lang.startsWith("en")) || null;
         }
@@ -84,6 +91,7 @@ export const QuestionSpeaker = ({ text, lang = "en-US", className }: Props) => {
       }
     };
 
+    // Chrome loads voices asynchronously
     if (window.speechSynthesis.getVoices().length > 0) {
       loadVoices();
     } else {
@@ -95,7 +103,7 @@ export const QuestionSpeaker = ({ text, lang = "en-US", className }: Props) => {
     };
   }, []);
 
-  // ── Core speak function ────────────────────────────────────────────────────
+  // ── Speak function (only when clicked) ──────────────────────────────────
   const speak = useCallback(() => {
     if (!supported || !window.speechSynthesis) return;
 
@@ -109,13 +117,15 @@ export const QuestionSpeaker = ({ text, lang = "en-US", className }: Props) => {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = lang;
     
+    // Use selected voice if available
     if (selectedVoice) {
       utterance.voice = selectedVoice;
     }
     
+    // Softer settings:
     utterance.rate = 0.85;      // Slightly slower for clarity (was 0.92)
     utterance.pitch = 1.15;     // Slightly higher pitch for softer sound (was 1.0)
-    utterance.volume = 0.9;     // Slightly lower volume for gentler feel
+    utterance.volume = 0.9;     // Slightly lower volume for gentler feel (was 1.0)
 
     utterance.onstart = () => setSpeaking(true);
     utterance.onend = () => setSpeaking(false);
@@ -124,27 +134,14 @@ export const QuestionSpeaker = ({ text, lang = "en-US", className }: Props) => {
     window.speechSynthesis.speak(utterance);
   }, [text, lang, supported, selectedVoice]);
 
-  // ── Auto-read when question changes ───────────────────────────────────────
+  // Cleanup when component unmounts
   useEffect(() => {
-    if (!supported || !voicesLoaded) return;
-
-    // Cancel any previous speech first
-    window.speechSynthesis.cancel();
-    setSpeaking(false);
-
-    // Small delay so the page has time to render before speaking starts
-    const timeout = setTimeout(() => {
-      speak();
-    }, 400);
-
-    // Cleanup: cancel if the component unmounts or text changes
     return () => {
-      clearTimeout(timeout);
-      window.speechSynthesis.cancel();
-      setSpeaking(false);
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text, supported, voicesLoaded]);
+  }, []);
 
   // Don't render anything if the browser doesn't support TTS
   if (!supported) return null;
@@ -153,16 +150,23 @@ export const QuestionSpeaker = ({ text, lang = "en-US", className }: Props) => {
     <button
       type="button"
       onClick={speak}
-      title={speaking ? "Stop reading" : "Read question aloud"}
-      aria-label={speaking ? "Stop reading" : "Read question aloud"}
+      title={speaking ? "Stop reading passage" : "Read passage aloud"}
+      aria-label={speaking ? "Stop reading passage" : "Read passage aloud"}
       className={cn(
+        // Base styles
         "inline-flex items-center justify-center rounded-full p-2 transition-all",
-        "text-orange-500 hover:bg-orange-50 active:scale-95",
-        speaking && "ring-2 ring-orange-400 ring-offset-1 animate-pulse",
+        // Colour: blue to match IELTS theme
+        "text-blue-500 hover:bg-blue-50 active:scale-95",
+        // Animated ring while speaking
+        speaking && "ring-2 ring-blue-400 ring-offset-1 animate-pulse",
         className,
       )}
     >
-      <Volume2 className={cn("h-6 w-6", !speaking && "opacity-70")} />
+      {speaking ? (
+        <Volume2 className="h-5 w-5" />
+      ) : (
+        <Volume2 className="h-5 w-5 opacity-70" />
+      )}
     </button>
   );
 };

@@ -1,0 +1,12 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect x="0" y="0" width="128" height="128" rx="28" fill="#38bdf8"></rect>
+
+  <!-- Letter W -->
+  <text x="32" y="85" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" fill="#ffffff">
+    w
+  </text>
+
+  <!-- Star -->
+  <polygon points="92,20 96,32 110,32 98,40 102,52 92,44 82,52 86,40 74,32 88,32" fill="#facc15"></polygon>
+</svg>

@@ -1,6 +1,9 @@
+"use client";
+
 import { challengeOptions } from "@/db/schema";
 import { cn } from "@/lib/utils";
 import { Card } from "./card";
+import { PassageSpeaker } from "./passage-speaker";
 
 // Correct imports — these files are in app/lesson/ielts/ (same parent folder)
 import { IeltsWriting } from "./ielts/IeltsWriting";
@@ -46,12 +49,16 @@ export const Challenge = ({
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col gap-4"
       >
-        {/* Reading passage box */}
+        {/* Reading passage box with speaker button */}
         {passage && (
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl max-h-56 overflow-y-auto text-sm leading-relaxed text-neutral-700">
-            <p className="font-bold text-blue-700 mb-2 text-xs uppercase tracking-wide">
-              Reading Passage
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-bold text-blue-700 text-xs uppercase tracking-wide">
+                Reading Passage
+              </p>
+              {/* ✅ NEW: Passage speaker button — user must click to hear passage */}
+              <PassageSpeaker text={passage} lang="en-US" />
+            </div>
             {passage}
           </div>
         )}
@@ -86,12 +93,16 @@ export const Challenge = ({
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col gap-4"
       >
-        {/* Reading passage box */}
+        {/* Reading passage box with speaker button */}
         {passage && (
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl max-h-56 overflow-y-auto text-sm leading-relaxed text-neutral-700">
-            <p className="font-bold text-blue-700 mb-2 text-xs uppercase tracking-wide">
-              Reading Passage
-            </p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="font-bold text-blue-700 text-xs uppercase tracking-wide">
+                Reading Passage
+              </p>
+              {/* ✅ NEW: Passage speaker button — user must click to hear passage */}
+              <PassageSpeaker text={passage} lang="en-US" />
+            </div>
             {passage}
           </div>
         )}
