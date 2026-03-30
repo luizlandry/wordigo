@@ -12,6 +12,7 @@ import { challengeOptions, challenges, userSubscription } from "@/db/schema";
 import { ResultCard } from "./result-card";
 import { Header } from "./header";
 import { QuestionBubble } from "./question-bubble";
+import { QuestionSpeaker } from "./question-speaker"; // ✅ NEW
 import { Challenge } from "./challenge";
 import { Footer } from "./footer";
 import { upsertChallengeProgress } from "@/actions/challenge-progress";
@@ -20,6 +21,7 @@ import { useHeartsModal } from "@/store/use-hearts-modal";
 import { usePracticeModal } from "@/store/use-practice-modal";
 import { ExamTimer } from "@/components/ExamTimer";
 import { AITutorCard } from "@/components/AITutorCard";
+import { InfinityIcon } from "lucide-react";
 
 type ChallengeWithOptions = typeof challenges.$inferSelect & {
   completed: boolean;
@@ -66,6 +68,9 @@ function mapAiChallenge(
   };
 }
 
+// ── Types that already have their own audio UI — skip the speaker for these ──
+const TYPES_WITH_OWN_AUDIO = ["IELTS_LISTENING", "IELTS_SPEAKING"];
+
 export const Quiz = ({
   initialPercentage,
   initialHearts,
@@ -77,7 +82,6 @@ export const Quiz = ({
   const { open: openHeartsModal } = useHeartsModal();
   const { open: openPracticeModal } = usePracticeModal();
 
-  // ✅ Derive isPro once — used to guard all hearts logic
   const isPro = !!userSubscription?.isActive;
 
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
@@ -114,6 +118,7 @@ export const Quiz = ({
   const [selectedOption, setSelectedOption] = useState<number>();
   const [status, setStatus] = useState<"correct" | "wrong" | "none">("none");
 
+  // ── AI IELTS question generation ─────────────────────────────────────────
   useEffect(() => {
     if (mode !== "ielts") return;
     if (challengesList.length === 0) return;
@@ -150,6 +155,7 @@ export const Quiz = ({
   const challenge = challengesList[activeIndex];
   const options = challenge?.challengeOptions ?? [];
 
+  // ── AI Tutor feedback when lesson ends ───────────────────────────────────
   useEffect(() => {
     if (!challenge && weaknesses.length > 0) {
       fetch("/api/ai-tutor", {
@@ -176,9 +182,7 @@ export const Quiz = ({
   const onContinue = () => {
     if (!challenge) return;
 
-    // ── ✅ FIX: "Next" after wrong answer ─────────────────────────────────
-    // The failed question was already re-queued at the end when the wrong
-    // answer was submitted. Here we just reset UI state and move forward.
+    // ── "Next" after wrong answer: question was already re-queued ──────────
     if (status === "wrong") {
       setStatus("none");
       setSelectedOption(undefined);
@@ -216,7 +220,7 @@ export const Quiz = ({
     if (!correctOption) return;
 
     if (correctOption.id === selectedOption) {
-      // ── Correct answer ────────────────────────────────────────────────
+      // ── Correct answer ────────────────────────────────────────────────────
       startTransition(() => {
         const isRealChallenge = challenge.id > 0;
         const progressPromise = isRealChallenge
@@ -250,12 +254,9 @@ export const Quiz = ({
           .catch(() => toast.error("Something went wrong."));
       });
     } else {
-      // ── Wrong answer ──────────────────────────────────────────────────
+      // ── Wrong answer: re-queue challenge at end ───────────────────────────
       setWeaknesses((prev) => [...prev, challenge.type || "general"]);
 
-      // ✅ FIX: Re-queue the failed challenge at the END of the list
-      // so the user will see it again after all remaining questions.
-      // Mark it as not completed so it counts as a fresh attempt.
       setChallengesList((prev) => [
         ...prev,
         { ...challenge, completed: false },
@@ -274,19 +275,19 @@ export const Quiz = ({
               return;
             }
             if (mode !== "exam") incorrectControls.play();
-
-            // ✅ Show wrong state briefly so user sees the red footer
             setStatus("wrong");
-
-            // ✅ Only decrement displayed hearts for non-Pro users
-            if (!isPro) {
-              setHearts((prev) => Math.max(prev - 1, 0));
-            }
+            if (!isPro) setHearts((prev) => Math.max(prev - 1, 0));
           })
           .catch(() => toast.error("Something went wrong."));
       });
     }
   };
+
+  // ── Whether to show the speaker for the current question type ─────────────
+  const showSpeaker =
+    challenge &&
+    !TYPES_WITH_OWN_AUDIO.includes(challenge.type) &&
+    !!challenge.question;
 
   return (
     <>
@@ -323,7 +324,6 @@ export const Quiz = ({
                 variant="points"
                 value={mode === "exam" ? 0 : challengesList.length * 5}
               />
-              {/* Pass isPro so Pro users see ∞ instead of 0 */}
               <ResultCard variant="hearts" value={hearts} isPro={isPro} />
             </div>
 
@@ -370,6 +370,7 @@ export const Quiz = ({
           <div className="flex-1 flex items-center justify-center">
             <div className="lg:w-[600px] w-full px-6 flex flex-col gap-y-12">
 
+              {/* IELTS mode badge */}
               {mode === "ielts" && (
                 <div className="flex items-center gap-2">
                   <span className="bg-blue-100 text-blue-600 text-xs font-bold px-3 py-1 rounded-full">
@@ -388,12 +389,34 @@ export const Quiz = ({
                 </div>
               )}
 
-              <h1 className="text-lg font-bold text-center">
-                {challenge.type === "ASSIST"
-                  ? "Select the correct meaning"
-                  : challenge.question}
-            </h1>
+              {/*
+               * ── Question title + speaker icon ──────────────────────────────
+               * We wrap the <h1> and <QuestionSpeaker> in a flex row so the
+               * speaker icon sits right beside the question text.
+               * The speaker is hidden for IELTS_LISTENING and IELTS_SPEAKING
+               * because those already have their own audio controls.
+               */}
+              <div className="flex items-center justify-center gap-x-3">
+                <h1 className="text-lg font-bold text-center">
+                  {challenge.type === "ASSIST"
+                    ? "Select the correct meaning"
+                    : challenge.question}
+                </h1>
 
+                {/* ✅ Speaker button — reads question aloud (auto + on click) */}
+                {showSpeaker && (
+                  <QuestionSpeaker
+                    text={
+                      challenge.type === "ASSIST"
+                        ? challenge.question          // read the actual word even if heading says "Select the correct meaning"
+                        : challenge.question
+                    }
+                    lang="en-US"
+                  />
+                )}
+              </div>
+
+              {/* ASSIST type shows the question in a speech bubble too */}
               {challenge.type === "ASSIST" && (
                 <QuestionBubble question={challenge.question} />
               )}
