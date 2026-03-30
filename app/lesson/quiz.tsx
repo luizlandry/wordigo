@@ -1,3 +1,4 @@
+// app/lesson/quiz.tsx
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
@@ -37,7 +38,6 @@ type Props = {
   mode?: string;
 };
 
-// ─── Helper: map AI challenge to app ChallengeWithOptions shape ─────────────
 function mapAiChallenge(
   aiChallenge: any,
   lessonId: number,
@@ -45,7 +45,7 @@ function mapAiChallenge(
   passage?: string
 ): ChallengeWithOptions {
   return {
-    id: -(Date.now() + index), // negative ID = AI-generated (not in DB)
+    id: -(Date.now() + index),
     lessonId,
     type: aiChallenge.type ?? "SELECT",
     question: aiChallenge.question ?? "",
@@ -76,6 +76,9 @@ export const Quiz = ({
 }: Props) => {
   const { open: openHeartsModal } = useHeartsModal();
   const { open: openPracticeModal } = usePracticeModal();
+
+  // ✅ Derive isPro once — used to guard all hearts logic
+  const isPro = !!userSubscription?.isActive;
 
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [weaknesses, setWeaknesses] = useState<string[]>([]);
@@ -111,21 +114,16 @@ export const Quiz = ({
   const [selectedOption, setSelectedOption] = useState<number>();
   const [status, setStatus] = useState<"correct" | "wrong" | "none">("none");
 
-  // ─── IELTS: Load AI-generated questions when lesson starts ─────────────────
   useEffect(() => {
     if (mode !== "ielts") return;
     if (challengesList.length === 0) return;
 
-    // Determine the primary challenge type for AI generation
     const primaryType = challengesList[0]?.type ?? "IELTS_READING";
-
-    // Only fetch AI questions for reading/writing/speaking (not if it's pure SELECT)
     const ieltsTypes = ["IELTS_READING","IELTS_TFNG","IELTS_WRITING","IELTS_SPEAKING","IELTS_LISTENING"];
     const hasIeltsContent = challengesList.some((c) => ieltsTypes.includes(c.type));
     if (!hasIeltsContent) return;
 
     setAiLoading(true);
-
     fetch("/api/ielts/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -138,13 +136,10 @@ export const Quiz = ({
       .then((r) => r.json())
       .then((data) => {
         if (!data?.data?.challenges) return;
-
         const aiChallenges: ChallengeWithOptions[] = data.data.challenges.map(
           (c: any, i: number) =>
             mapAiChallenge(c, lessonId, i + 1000, data.data.passage)
         );
-
-        // Append AI challenges after seeded ones
         setChallengesList((prev) => [...prev, ...aiChallenges]);
       })
       .catch((err) => console.error("AI IELTS load error:", err))
@@ -155,7 +150,6 @@ export const Quiz = ({
   const challenge = challengesList[activeIndex];
   const options = challenge?.challengeOptions ?? [];
 
-  // ─── AI Tutor feedback when lesson ends ───────────────────────────────────
   useEffect(() => {
     if (!challenge && weaknesses.length > 0) {
       fetch("/api/ai-tutor", {
@@ -182,13 +176,22 @@ export const Quiz = ({
   const onContinue = () => {
     if (!challenge) return;
 
+    // ── ✅ FIX: "Next" after wrong answer ─────────────────────────────────
+    // The failed question was already re-queued at the end when the wrong
+    // answer was submitted. Here we just reset UI state and move forward.
+    if (status === "wrong") {
+      setStatus("none");
+      setSelectedOption(undefined);
+      onNext();
+      return;
+    }
+
     const userLevel = 1;
     if ((challenge.difficulty ?? 1) > userLevel) {
       onNext();
       return;
     }
 
-    // IELTS writing/speaking: auto-advance without DB tracking
     if (mode === "ielts") {
       if (
         challenge.type === "IELTS_WRITING" ||
@@ -213,18 +216,16 @@ export const Quiz = ({
     if (!correctOption) return;
 
     if (correctOption.id === selectedOption) {
-      // Correct answer
+      // ── Correct answer ────────────────────────────────────────────────
       startTransition(() => {
-        // Only track DB progress for real (positive ID) challenges
         const isRealChallenge = challenge.id > 0;
-
         const progressPromise = isRealChallenge
           ? upsertChallengeProgress(challenge.id)
           : Promise.resolve(undefined);
 
         progressPromise
           .then((response) => {
-            if (response?.error === "hearts") {
+            if (response?.error === "hearts" && !isPro) {
               openHeartsModal();
               return;
             }
@@ -249,24 +250,38 @@ export const Quiz = ({
           .catch(() => toast.error("Something went wrong."));
       });
     } else {
-      // Wrong answer
+      // ── Wrong answer ──────────────────────────────────────────────────
       setWeaknesses((prev) => [...prev, challenge.type || "general"]);
+
+      // ✅ FIX: Re-queue the failed challenge at the END of the list
+      // so the user will see it again after all remaining questions.
+      // Mark it as not completed so it counts as a fresh attempt.
+      setChallengesList((prev) => [
+        ...prev,
+        { ...challenge, completed: false },
+      ]);
+
       startTransition(() => {
         const isRealChallenge = challenge.id > 0;
-
         const heartPromise = isRealChallenge
           ? reduceHearts(challenge.id)
           : Promise.resolve(undefined);
 
         heartPromise
           .then((response) => {
-            if (response?.error === "hearts") {
+            if (response?.error === "hearts" && !isPro) {
               openHeartsModal();
               return;
             }
             if (mode !== "exam") incorrectControls.play();
+
+            // ✅ Show wrong state briefly so user sees the red footer
             setStatus("wrong");
-            setHearts((prev) => Math.max(prev - 1, 0));
+
+            // ✅ Only decrement displayed hearts for non-Pro users
+            if (!isPro) {
+              setHearts((prev) => Math.max(prev - 1, 0));
+            }
           })
           .catch(() => toast.error("Something went wrong."));
       });
@@ -308,7 +323,8 @@ export const Quiz = ({
                 variant="points"
                 value={mode === "exam" ? 0 : challengesList.length * 5}
               />
-              <ResultCard variant="hearts" value={hearts} />
+              {/* Pass isPro so Pro users see ∞ instead of 0 */}
+              <ResultCard variant="hearts" value={hearts} isPro={isPro} />
             </div>
 
             {aiFeedback && <AITutorCard feedback={aiFeedback} />}
@@ -339,7 +355,6 @@ export const Quiz = ({
             />
           )}
 
-          {/* IELTS loading indicator */}
           {aiLoading && mode === "ielts" && (
             <div className="text-center text-xs text-blue-500 py-1 animate-pulse">
               ✨ Loading AI-generated questions...
@@ -349,13 +364,12 @@ export const Quiz = ({
           <Header
             hearts={hearts}
             percentage={percentage}
-            hasActiveSubscription={!!userSubscription?.isActive}
+            hasActiveSubscription={isPro}
           />
 
           <div className="flex-1 flex items-center justify-center">
             <div className="lg:w-[600px] w-full px-6 flex flex-col gap-y-12">
 
-              {/* IELTS mode badge */}
               {mode === "ielts" && (
                 <div className="flex items-center gap-2">
                   <span className="bg-blue-100 text-blue-600 text-xs font-bold px-3 py-1 rounded-full">
@@ -377,10 +391,8 @@ export const Quiz = ({
               <h1 className="text-lg font-bold text-center">
                 {challenge.type === "ASSIST"
                   ? "Select the correct meaning"
-                  : challenge.type === "IELTS_READING" || challenge.type === "IELTS_TFNG"
-                  ? challenge.question
                   : challenge.question}
-              </h1>
+            </h1>
 
               {challenge.type === "ASSIST" && (
                 <QuestionBubble question={challenge.question} />

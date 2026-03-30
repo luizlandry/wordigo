@@ -1,3 +1,4 @@
+// actions/user-progress.tsx
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -7,7 +8,7 @@ import { and, eq } from "drizzle-orm";
 
 import { getCourseById, getUserProgress, getUserSubscription } from "@/db/queries";
 import { userProgress, challengeProgress, challenges } from "@/db/schema";
-import { auth, currentUser } from "@clerk/nextjs/server"; 
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { POINTS_TO_REFILL } from "@/constants";
 
 export const upsertUserProgress = async (courseId: number) => {
@@ -24,7 +25,6 @@ export const upsertUserProgress = async (courseId: number) => {
     throw new Error("Course not found");
   }
 
-  // TODO: Enable once units and lessons are added
   if (!course.units.length || !course.units[0].lessons.length) {
     throw new Error("Course is empty");
   }
@@ -48,7 +48,7 @@ export const upsertUserProgress = async (courseId: number) => {
     activeCourseId: courseId,
     userName: user.firstName || "user",
     userImageSrc: user.imageUrl || "/mascot.svg",
-    streak: 1, 
+    streak: 1,
     xp: 0,
   });
 
@@ -87,23 +87,28 @@ export const reduceHearts = async (challengeId: number) => {
   const isPractice = !!existingChallengeProgress;
 
   if (isPractice) {
-    return {
-      error: "practice"
-    };
+    return { error: "practice" };
   }
 
   if (!currentUserProgress) {
     throw new Error("User progress not found");
   }
 
-  if (!userSubscription?.isActive) {
-    return { error: "subscription" };
+  // ✅ FIX: Pro users have UNLIMITED hearts.
+  // Return immediately with no error and NO heart reduction.
+  // Previously the logic was inverted — it blocked non-Pro users with a
+  // "subscription" error and then let Pro users fall through to the
+  // hearts === 0 check, which opened the modal and still reduced hearts.
+  if (userSubscription?.isActive) {
+    return; // Pro user — unlimited hearts, do nothing
   }
 
-  if (currentUserProgress.hearts === 0) {  // Fixed typo here
-    return { error: "hearts" };
+  // Non-Pro user: check if they have hearts remaining
+  if (currentUserProgress.hearts === 0) {
+    return { error: "hearts" }; // Show the "out of hearts" modal
   }
 
+  // Non-Pro user with hearts remaining: deduct one heart
   await db.update(userProgress).set({
     hearts: Math.max(currentUserProgress.hearts - 1, 0),
     lastActive: new Date(),
@@ -111,9 +116,9 @@ export const reduceHearts = async (challengeId: number) => {
 
   revalidatePath("/shop");
   revalidatePath("/learn");
-  revalidatePath("/quests");  // Fixed typo here
+  revalidatePath("/quests");
   revalidatePath("/leaderboard");
-  revalidatePath(`/lesson/${lessonId}`);  // Fixed template string
+  revalidatePath(`/lesson/${lessonId}`);
 };
 
 export const refillHearts = async () => {
@@ -124,7 +129,7 @@ export const refillHearts = async () => {
   }
 
   if (currentUserProgress.hearts === 5) {
-    throw new Error("Hearts are already full");  // Fixed typo
+    throw new Error("Hearts are already full");
   }
 
   if (currentUserProgress.points < POINTS_TO_REFILL) {

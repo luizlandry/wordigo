@@ -1,41 +1,49 @@
+// app/lesson/result-card.tsx
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { InfinityIcon } from "lucide-react";
 
 type Props = {
-    value: number;
-    variant: "hearts" | "points";
+  value: number;
+  variant: "hearts" | "points";
+  isPro?: boolean; // ✅ NEW: when true, hearts shows ∞ instead of the value
 };
 
-export const ResultCard = ({ value, variant }: Props) => {
-    const imageSrc = variant === "hearts" ? "/heart.svg" : "/points.svg";
+export const ResultCard = ({ value, variant, isPro }: Props) => {
+  const imageSrc = variant === "hearts" ? "/heart.svg" : "/points.svg";
 
-    return (
-        <div className={cn(
-            "rounded-2xl border-2 w-full",
-            variant === "points" && "bg-orange-400 border-orange-400",
-            variant === "hearts" && "bg-rose-500 border-rose-500",
-        )}>
-            <div className={cn(
-                "p-1.5 text-white rounded-t-xl font-bold text-center uppercase text-xs",
-                variant === "hearts" && "bg-rose-500",
-                variant === "points" && "bg-orange-400",
-            )}>
-                {variant === "hearts" ? "Hearts left" : "Total XP"}
-            </div>
-            <div className={cn(
-                "rounded-2xl bg-white items-center flex justify-center p-6 font-bold text-lg",
-                variant === "hearts" && "text-rose-500",
-                variant === "points" && "text-orange-400",
-            )}>
-                <Image 
-                    alt="Icon"
-                    src={imageSrc}
-                    height={30}
-                    width={30}
-                    className="mr-1.5"
-                />
-                {value}
-            </div>   
-        </div>
-    );
+  return (
+    <div className={cn(
+      "rounded-2xl border-2 w-full",
+      variant === "points" && "bg-orange-400 border-orange-400",
+      variant === "hearts" && "bg-rose-500 border-rose-500",
+    )}>
+      <div className={cn(
+        "p-1.5 text-white rounded-t-xl font-bold text-center uppercase text-xs",
+        variant === "hearts" && "bg-rose-500",
+        variant === "points" && "bg-orange-400",
+      )}>
+        {variant === "hearts" ? "Hearts left" : "Total XP"}
+      </div>
+
+      <div className={cn(
+        "rounded-2xl bg-white items-center flex justify-center p-6 font-bold text-lg",
+        variant === "hearts" && "text-rose-500",
+        variant === "points" && "text-orange-400",
+      )}>
+        <Image
+          alt="Icon"
+          src={imageSrc}
+          height={30}
+          width={30}
+          className="mr-1.5"
+        />
+        {/* ✅ FIX: Show ∞ for Pro users on the hearts card */}
+        {variant === "hearts" && isPro
+          ? <InfinityIcon className="h-6 w-6" />
+          : value
+        }
+      </div>
+    </div>
+  );
 };
