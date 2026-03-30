@@ -64,7 +64,7 @@ const Sidebar = ({ className }: Props) => {
         <Sidebaritem
           label="Settings"
           href="/settings"
-          iconSrc="/setting.svg"
+          iconSrc="/settingudated.svg"
         />
       </div>
 
