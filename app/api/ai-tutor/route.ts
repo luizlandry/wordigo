@@ -8,9 +8,11 @@ export async function POST(req: Request) {
     const result = await analyzeWeakness(answers);
 
     return NextResponse.json({ result });
-
   } catch (error) {
     console.error("AI Tutor Error:", error);
-    return new NextResponse("Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error", details: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
   }
 }

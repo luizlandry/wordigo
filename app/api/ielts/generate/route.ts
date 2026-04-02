@@ -8,7 +8,10 @@ export async function POST(req: Request) {
     const { type, bandLevel = 5, topic, lessonTitle } = await req.json();
 
     if (!type) {
-      return new NextResponse("Missing 'type' field", { status: 400 });
+      return NextResponse.json(
+        { error: "Missing 'type' field" },
+        { status: 400 }
+      );
     }
 
     let prompt = "";
@@ -165,9 +168,12 @@ Return JSON: {"challenges": [{"type": "${type}", "question": "...", "options": [
     let parsed;
     try {
       parsed = JSON.parse(cleaned);
-    } catch {
+    } catch (parseError) {
       console.error("JSON parse error:", cleaned.slice(0, 200));
-      return new NextResponse("AI returned invalid JSON", { status: 500 });
+      return NextResponse.json(
+        { error: "AI returned invalid JSON", raw: cleaned.slice(0, 500) },
+        { status: 500 }
+      );
     }
 
     // Normalize: ensure passage is propagated into each challenge for reading types
@@ -181,6 +187,9 @@ Return JSON: {"challenges": [{"type": "${type}", "question": "...", "options": [
     return NextResponse.json({ success: true, data: parsed });
   } catch (error) {
     console.error("IELTS Generate API Error:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error", details: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
   }
 }
