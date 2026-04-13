@@ -10,7 +10,7 @@ type Props = {
   hearts: number;
   points: number;
   hasActiveSubscription: boolean;
-  streak: number; // ✅ FIX 1: Added missing prop type
+  streak: number | null; // ✅ FIX 1: Added missing prop type
 };
 
 export const UserProgress = ({
