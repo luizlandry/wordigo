@@ -3,10 +3,13 @@ import { UnitBanner } from "./unit-Banner";
 import { LessonButton } from "./lesson-button";
 import { IeltsProBanner } from "@/components/IeltsProBanner";
 
-type LessonWithCompletion = (typeof lessons.$inferSelect) & { completed?: boolean };
-type ActiveLessonWithUnit = (typeof lessons.$inferSelect) & { unit: typeof units.$inferSelect };
+type LessonWithCompletion = (typeof lessons.$inferSelect) & {
+  completed?: boolean;
+};
+type ActiveLessonWithUnit = (typeof lessons.$inferSelect) & {
+  unit: typeof units.$inferSelect;
+};
 
-// Map unit order to IELTS band target text
 const IELTS_BAND_MAP: Record<number, string> = {
   1: "Band 4–5",
   2: "Band 4–5",
@@ -27,7 +30,6 @@ type Props = {
   activeLesson?: ActiveLessonWithUnit;
   activeLessonPercentage: number;
   locked?: boolean;
-  // IELTS-specific
   isIeltsCourse?: boolean;
   isPro?: boolean;
 };
@@ -42,17 +44,14 @@ export const Unit = ({
   isIeltsCourse,
   isPro,
 }: Props) => {
-
-  // PRO GATE: IELTS units 3–8 require Pro subscription
   const isProLocked = isIeltsCourse && order > 2 && !isPro;
-
-  // Band target label for IELTS units
-  const bandTarget = isIeltsCourse ? IELTS_BAND_MAP[order] ?? "Band 5–9" : undefined;
-
-  // Build banner description: append band info for IELTS
-  const bannerDescription = isIeltsCourse && bandTarget
-    ? `${description} · Target: ${bandTarget}`
-    : description;
+  const bandTarget = isIeltsCourse
+    ? IELTS_BAND_MAP[order] ?? "Band 5–9"
+    : undefined;
+  const bannerDescription =
+    isIeltsCourse && bandTarget
+      ? `${description} · Target: ${bandTarget}`
+      : description;
 
   return (
     <>
@@ -65,12 +64,17 @@ export const Unit = ({
       />
 
       {isProLocked ? (
-        // Show pro upgrade prompt instead of lessons
-        <IeltsProBanner unitTitle={title} bandTarget={bandTarget ?? "Band 5–9"} />
+        <IeltsProBanner
+          unitTitle={title}
+          bandTarget={bandTarget ?? "Band 5–9"}
+        />
       ) : (
         <div className="flex items-center flex-col relative">
           {lessons.map((lesson, index) => {
             const isCurrent = lesson.id === activeLesson?.id;
+
+            // ✅ A lesson is locked ONLY if it is not completed AND not the current active lesson
+            // Completed lessons are NEVER locked — users can always go back to practice them
             const isLocked = !lesson.completed && !isCurrent;
 
             return (
@@ -78,7 +82,7 @@ export const Unit = ({
                 key={lesson.id}
                 id={lesson.id}
                 index={index}
-                totalCount={lessons.length}
+                totalCount={lessons.length - 1}
                 current={isCurrent}
                 locked={isLocked}
                 percentage={isCurrent ? activeLessonPercentage : 0}
