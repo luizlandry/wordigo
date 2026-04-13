@@ -85,7 +85,7 @@ const PaymentSuccessPage = () => {
           <Crown className="w-12 h-12 text-yellow-500" />
         </div>
 
-        <Image src="/mascot.svg" alt="Mascot" width={100} height={100} />
+        <Image src="/mascot1.svg" alt="Mascot" width={100} height={100} />
 
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-neutral-800">

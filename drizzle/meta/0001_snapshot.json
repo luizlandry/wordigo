@@ -436,7 +436,7 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true,
-          "default": "'/mascot.svg'"
+          "default": "'/mascot1.svg'"
         },
         "active_course_id": {
           "name": "active_course_id",

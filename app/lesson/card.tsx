@@ -1,3 +1,4 @@
+// app/lesson/card.tsx
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ type Props = {
   disabled?: boolean;
   status?: "correct" | "wrong" | "none";
   type: "SELECT" | "ASSIST" | "IELTS_READING" | "IELTS_WRITING" | "IELTS_LISTENING" | "IELTS_SPEAKING" | "IELTS_TFNG";
+  isCorrectHighlight?: boolean; // ✅ New prop for highlighting correct answer
 };
 
 export const Card = ({
@@ -29,20 +31,17 @@ export const Card = ({
   disabled,
   status,
   type,
+  isCorrectHighlight,
 }: Props) => {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleClick = useCallback(() => {
     if (disabled) return;
-
-    // Only attempt to play if we actually have an audio source
     if (audioSrc && audioRef.current) {
       audioRef.current.play().catch((err) => {
-        // Handle autoplay restrictions gracefully
         console.log("Audio playback failed:", err);
       });
     }
-    
     onClick();
   }, [disabled, onClick, audioSrc]);
 
@@ -52,24 +51,18 @@ export const Card = ({
     <div
       onClick={handleClick}
       className={cn(
-        "h-full border-2 rounded-xl border-b-4 hover:bg-black/5 p-4 lg:p-6 cursor-pointer active:border-b-2",
+        "h-full border-2 rounded-xl border-b-4 hover:bg-black/5 p-4 lg:p-6 cursor-pointer active:border-b-2 transition-all",
         selected && "bg-sky-100 border-sky-300 hover:bg-sky-100",
         selected && status === "correct" && "border-green-300 bg-green-100",
         selected && status === "wrong" && "border-rose-300 bg-rose-100",
+        // ✅ New: highlight correct answer when user answered wrong
+        isCorrectHighlight && !selected && "border-green-500 bg-green-50 ring-2 ring-green-300",
         disabled && "pointer-events-none opacity-50",
         type === "ASSIST" && "lg:p-3 w-full"
       )}
     >
-      {/* 
-         FIX: Only render the audio element if audioSrc exists
-         This prevents the empty src attribute warning
-      */}
       {audioSrc && (
-        <audio
-          ref={audioRef}
-          src={audioSrc}
-          preload="none"
-        />
+        <audio ref={audioRef} src={audioSrc} preload="none" />
       )}
       
       {imageSrc && (
@@ -89,7 +82,8 @@ export const Card = ({
             "text-neutral-600 text-sm lg:text-base",
             selected && "text-sky-500",
             selected && status === "correct" && "text-green-500",
-            selected && status === "wrong" && "text-rose-500"
+            selected && status === "wrong" && "text-rose-500",
+            isCorrectHighlight && !selected && "text-green-600 font-medium"
           )}
         >
           {text}
@@ -99,7 +93,8 @@ export const Card = ({
             "lg:w-[30px] lg:h-[30px] w-[20px] h-[20px] border-2 flex items-center justify-center rounded-lg text-neutral-400 lg:text-[15px] text-[12px] font-semibold",
             selected && "border-sky-300 text-sky-500",
             selected && status === "correct" && "border-green-500 text-green-500",
-            selected && status === "wrong" && "border-rose-500 text-rose-500"
+            selected && status === "wrong" && "border-rose-500 text-rose-500",
+            isCorrectHighlight && !selected && "border-green-500 text-green-500 bg-green-50"
           )}
         >
           {shortcut}

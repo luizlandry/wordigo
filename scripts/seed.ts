@@ -20,47 +20,9 @@ const main = async () => {
     await db.delete(schema.courses);
     await db.delete(schema.userSubscription);
 
-    // ─── COURSES ───────────────────────────────────────────────────────
+    // ─── COURSES – Only English (IELTS) ─────────────────────────────────
     await db.insert(schema.courses).values([
-      { id: 1, title: "Spanish",         imageSrc: "/es.svg" },
-      { id: 2, title: "Italian",         imageSrc: "/it.svg" },
-      { id: 3, title: "French",          imageSrc: "/fr.svg" },
-      { id: 4, title: "Croatian",        imageSrc: "/hr.svg" },
       { id: 5, title: "English ", imageSrc: "/en.svg" },
-    ]);
-
-    // ─── SPANISH UNITS ─────────────────────────────────────────────────
-    await db.insert(schema.units).values([
-      { id: 1, courseId: 1, title: "Unit 1", description: "Learn the basics of Spanish", order: 1 },
-      { id: 2, courseId: 1, title: "Unit 2", description: "Intermediate Spanish", order: 2 },
-    ]);
-
-    // ─── SPANISH LESSONS ───────────────────────────────────────────────
-    await db.insert(schema.lessons).values([
-      { id: 1, unitId: 1, title: "Nouns",      order: 1 },
-      { id: 2, unitId: 1, title: "Verbs",       order: 2 },
-      { id: 3, unitId: 1, title: "Adjectives",  order: 3 },
-      { id: 4, unitId: 1, title: "Phrases",     order: 4 },
-      { id: 5, unitId: 1, title: "Sentences",   order: 5 },
-    ]);
-
-    // ─── SPANISH CHALLENGES (Lesson 1) ─────────────────────────────────
-    await db.insert(schema.challenges).values([
-      { id: 1, lessonId: 1, type: "SELECT", order: 1, question: 'Which one of these is "the man"?' },
-      { id: 2, lessonId: 1, type: "ASSIST", order: 2, question: '"the man"' },
-      { id: 3, lessonId: 1, type: "SELECT", order: 3, question: 'Which one of these is "the robot"?' },
-    ]);
-
-    await db.insert(schema.challengeOptions).values([
-      { challengeId: 1, correct: true,  text: "el hombre", imageSrc: "/man.png",   audioSrc: "/es_man.mp3" },
-      { challengeId: 1, correct: false, text: "la mujer",  imageSrc: "/woman.png", audioSrc: "/es_woman.mp3" },
-      { challengeId: 1, correct: false, text: "el chico",  imageSrc: "/boy.svg",   audioSrc: "/es_boy.mp3" },
-      { challengeId: 2, correct: true,  text: "el hombre", audioSrc: "/es_man.mp3" },
-      { challengeId: 2, correct: false, text: "la mujer",  audioSrc: "/es_woman.mp3" },
-      { challengeId: 2, correct: false, text: "el robot",  audioSrc: "/es_robot.mp3" },
-      { challengeId: 3, correct: false, text: "el hombre", imageSrc: "/man.png",   audioSrc: "/es_man.mp3" },
-      { challengeId: 3, correct: false, text: "la mujer",  imageSrc: "/woman.png", audioSrc: "/es_woman.mp3" },
-      { challengeId: 3, correct: true,  text: "el robot",  imageSrc: "/robot.jpg", audioSrc: "/es_robot.mp3" },
     ]);
 
     // ═══════════════════════════════════════════════════════════════════
@@ -186,7 +148,6 @@ const main = async () => {
       { id: 109, unitId: 11, title: "Reading Test Mini",        order: 5, mode: "ielts" },
     ]);
 
-    // ─── UNIT 11 CHALLENGES ────────────────────────────────────────────
     const passage1 = `The development of the internet has fundamentally changed the way people communicate and access information. Since its early days as a military research network in the 1960s, the internet has evolved into a global infrastructure connecting billions of users. Researchers, students and professionals now rely on it daily for tasks that previously required visiting libraries or offices. Despite widespread benefits, concerns about digital privacy and the spread of misinformation have grown significantly alongside its expansion.`;
 
     const passage2 = `Climate change represents one of the most pressing challenges of the twenty-first century. Rising global temperatures, driven primarily by the burning of fossil fuels, are causing sea levels to rise and extreme weather events to become more frequent. Many scientists agree that immediate and coordinated international action is essential. However, economic interests and political disagreements have slowed meaningful progress on reducing carbon emissions worldwide.`;
@@ -195,125 +156,66 @@ const main = async () => {
 
     await db.insert(schema.challenges).values([
       // Lesson 105 – Skimming & Scanning
-      {
-        id: 215, lessonId: 105, type: "IELTS_READING", order: 1,
-        question: "According to the passage, the internet began as what type of network?",
-        passage: passage1,
-      },
-      {
-        id: 216, lessonId: 105, type: "IELTS_TFNG", order: 2,
-        question: "The internet was originally developed for commercial purposes.",
-        passage: passage1,
-      },
-      {
-        id: 217, lessonId: 105, type: "IELTS_TFNG", order: 3,
-        question: "Digital privacy is a concern associated with internet expansion.",
-        passage: passage1,
-      },
+      { id: 215, lessonId: 105, type: "IELTS_READING", order: 1, question: "According to the passage, the internet began as what type of network?", passage: passage1 },
+      { id: 216, lessonId: 105, type: "IELTS_TFNG", order: 2, question: "The internet was originally developed for commercial purposes.", passage: passage1 },
+      { id: 217, lessonId: 105, type: "IELTS_TFNG", order: 3, question: "Digital privacy is a concern associated with internet expansion.", passage: passage1 },
       // Lesson 106 – T/F/NG
-      {
-        id: 218, lessonId: 106, type: "IELTS_READING", order: 1,
-        question: "What does the author identify as a primary driver of climate change?",
-        passage: passage2,
-      },
-      {
-        id: 219, lessonId: 106, type: "IELTS_TFNG", order: 2,
-        question: "All scientists worldwide fully agree on the urgency of climate action.",
-        passage: passage2,
-      },
-      {
-        id: 220, lessonId: 106, type: "IELTS_TFNG", order: 3,
-        question: "Political disagreements have contributed to slow progress on emissions.",
-        passage: passage2,
-      },
+      { id: 218, lessonId: 106, type: "IELTS_READING", order: 1, question: "What does the author identify as a primary driver of climate change?", passage: passage2 },
+      { id: 219, lessonId: 106, type: "IELTS_TFNG", order: 2, question: "All scientists worldwide fully agree on the urgency of climate action.", passage: passage2 },
+      { id: 220, lessonId: 106, type: "IELTS_TFNG", order: 3, question: "Political disagreements have contributed to slow progress on emissions.", passage: passage2 },
       // Lesson 107 – Multiple Choice
-      {
-        id: 221, lessonId: 107, type: "IELTS_READING", order: 1,
-        question: "What do critics of urban farming point to as a major challenge?",
-        passage: passage3,
-      },
-      {
-        id: 222, lessonId: 107, type: "IELTS_TFNG", order: 2,
-        question: "Urban farming has been successfully implemented at large scale in most cities.",
-        passage: passage3,
-      },
-      {
-        id: 223, lessonId: 107, type: "IELTS_TFNG", order: 3,
-        question: "Singapore and New York have conducted small-scale urban farming projects.",
-        passage: passage3,
-      },
+      { id: 221, lessonId: 107, type: "IELTS_READING", order: 1, question: "What do critics of urban farming point to as a major challenge?", passage: passage3 },
+      { id: 222, lessonId: 107, type: "IELTS_TFNG", order: 2, question: "Urban farming has been successfully implemented at large scale in most cities.", passage: passage3 },
+      { id: 223, lessonId: 107, type: "IELTS_TFNG", order: 3, question: "Singapore and New York have conducted small-scale urban farming projects.", passage: passage3 },
       // Lesson 108 – Matching Headings Intro
-      {
-        id: 224, lessonId: 108, type: "IELTS_READING", order: 1,
-        question: "Which heading best describes the first paragraph about internet history?",
-        passage: passage1,
-      },
-      {
-        id: 225, lessonId: 108, type: "IELTS_TFNG", order: 2,
-        question: "The internet has always been freely accessible to all citizens.",
-        passage: passage1,
-      },
-      // Lesson 109 – Mini Reading Test (AI-enhanced)
-      {
-        id: 226, lessonId: 109, type: "IELTS_READING", order: 1,
-        question: "What is the main idea of the passage about climate change?",
-        passage: passage2,
-      },
-      {
-        id: 227, lessonId: 109, type: "IELTS_TFNG", order: 2,
-        question: "Economic factors have had no effect on climate change policy.",
-        passage: passage2,
-      },
-      {
-        id: 228, lessonId: 109, type: "IELTS_TFNG", order: 3,
-        question: "Sea levels are rising as a result of increased global temperatures.",
-        passage: passage2,
-      },
+      { id: 224, lessonId: 108, type: "IELTS_READING", order: 1, question: "Which heading best describes the first paragraph about internet history?", passage: passage1 },
+      { id: 225, lessonId: 108, type: "IELTS_TFNG", order: 2, question: "The internet has always been freely accessible to all citizens.", passage: passage1 },
+      // Lesson 109 – Mini Reading Test
+      { id: 226, lessonId: 109, type: "IELTS_READING", order: 1, question: "What is the main idea of the passage about climate change?", passage: passage2 },
+      { id: 227, lessonId: 109, type: "IELTS_TFNG", order: 2, question: "Economic factors have had no effect on climate change policy.", passage: passage2 },
+      { id: 228, lessonId: 109, type: "IELTS_TFNG", order: 3, question: "Sea levels are rising as a result of increased global temperatures.", passage: passage2 },
     ]);
 
-    // Challenge options for T/F/NG
-    const tfngIds = [216,217,219,220,222,223,225,227,228];
-    const tfngOptions: { challengeId: number; text: string; correct: boolean }[] = [];
-    // 216: FALSE (military not commercial)
-    tfngOptions.push(
-      { challengeId: 216, text: "TRUE",      correct: false },
-      { challengeId: 216, text: "FALSE",     correct: true  },
+    const tfngOptions = [
+      // 216: FALSE
+      { challengeId: 216, text: "TRUE", correct: false },
+      { challengeId: 216, text: "FALSE", correct: true },
       { challengeId: 216, text: "NOT GIVEN", correct: false },
-      // 217: TRUE (privacy is mentioned)
-      { challengeId: 217, text: "TRUE",      correct: true  },
-      { challengeId: 217, text: "FALSE",     correct: false },
+      // 217: TRUE
+      { challengeId: 217, text: "TRUE", correct: true },
+      { challengeId: 217, text: "FALSE", correct: false },
       { challengeId: 217, text: "NOT GIVEN", correct: false },
-      // 219: NOT GIVEN (passage says "many scientists" not all)
-      { challengeId: 219, text: "TRUE",      correct: false },
-      { challengeId: 219, text: "FALSE",     correct: false },
-      { challengeId: 219, text: "NOT GIVEN", correct: true  },
+      // 219: NOT GIVEN
+      { challengeId: 219, text: "TRUE", correct: false },
+      { challengeId: 219, text: "FALSE", correct: false },
+      { challengeId: 219, text: "NOT GIVEN", correct: true },
       // 220: TRUE
-      { challengeId: 220, text: "TRUE",      correct: true  },
-      { challengeId: 220, text: "FALSE",     correct: false },
+      { challengeId: 220, text: "TRUE", correct: true },
+      { challengeId: 220, text: "FALSE", correct: false },
       { challengeId: 220, text: "NOT GIVEN", correct: false },
-      // 222: FALSE (not large-scale)
-      { challengeId: 222, text: "TRUE",      correct: false },
-      { challengeId: 222, text: "FALSE",     correct: true  },
+      // 222: FALSE
+      { challengeId: 222, text: "TRUE", correct: false },
+      { challengeId: 222, text: "FALSE", correct: true },
       { challengeId: 222, text: "NOT GIVEN", correct: false },
       // 223: TRUE
-      { challengeId: 223, text: "TRUE",      correct: true  },
-      { challengeId: 223, text: "FALSE",     correct: false },
+      { challengeId: 223, text: "TRUE", correct: true },
+      { challengeId: 223, text: "FALSE", correct: false },
       { challengeId: 223, text: "NOT GIVEN", correct: false },
       // 225: NOT GIVEN
-      { challengeId: 225, text: "TRUE",      correct: false },
-      { challengeId: 225, text: "FALSE",     correct: false },
-      { challengeId: 225, text: "NOT GIVEN", correct: true  },
+      { challengeId: 225, text: "TRUE", correct: false },
+      { challengeId: 225, text: "FALSE", correct: false },
+      { challengeId: 225, text: "NOT GIVEN", correct: true },
       // 227: FALSE
-      { challengeId: 227, text: "TRUE",      correct: false },
-      { challengeId: 227, text: "FALSE",     correct: true  },
+      { challengeId: 227, text: "TRUE", correct: false },
+      { challengeId: 227, text: "FALSE", correct: true },
       { challengeId: 227, text: "NOT GIVEN", correct: false },
       // 228: TRUE
-      { challengeId: 228, text: "TRUE",      correct: true  },
-      { challengeId: 228, text: "FALSE",     correct: false },
+      { challengeId: 228, text: "TRUE", correct: true },
+      { challengeId: 228, text: "FALSE", correct: false },
       { challengeId: 228, text: "NOT GIVEN", correct: false },
-    );
+    ];
+    await db.insert(schema.challengeOptions).values(tfngOptions);
 
-    // Reading multiple choice options
     await db.insert(schema.challengeOptions).values([
       // 215 – internet began as
       { challengeId: 215, correct: false, text: "A commercial telecommunications network" },
@@ -337,12 +239,7 @@ const main = async () => {
       { challengeId: 226, correct: false, text: "Scientists cannot agree on climate change causes" },
     ]);
 
-    await db.insert(schema.challengeOptions).values(tfngOptions);
-
     // ─── PRO UNITS 12–17: Lessons & Representative Challenges ──────────
-    // These units are PRO-gated. We seed one representative lesson per unit.
-    // The AI generation API fills in the rest dynamically.
-
     await db.insert(schema.lessons).values([
       // Unit 12 – Listening Skills (PRO)
       { id: 110, unitId: 12, title: "Section 1: Everyday Conversations", order: 1, mode: "ielts" },
@@ -382,36 +279,18 @@ const main = async () => {
       { id: 139, unitId: 17, title: "Mock: Speaking (14 min)",            order: 5, mode: "ielts" },
     ]);
 
-    // Unit 13 – Writing challenges (representative)
+    // Unit 13 – Writing challenges
     await db.insert(schema.challenges).values([
-      {
-        id: 300, lessonId: 115, type: "IELTS_WRITING", order: 1,
-        question: "Task 1 – The graph below shows the percentage of households with internet access in four countries between 2000 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant. Write at least 150 words.",
-      },
-      {
-        id: 301, lessonId: 117, type: "IELTS_WRITING", order: 1,
-        question: "Task 2 – Some people believe that technology has made our lives too complicated. To what extent do you agree or disagree? Give reasons for your answer and include any relevant examples from your own knowledge or experience. Write at least 250 words.",
-      },
-      {
-        id: 302, lessonId: 118, type: "IELTS_WRITING", order: 1,
-        question: "Task 2 – Some people think that parents should limit the time their children spend watching television or using digital devices. Others think children should be allowed to use these devices freely. Discuss both views and give your own opinion. Write at least 250 words.",
-      },
+      { id: 300, lessonId: 115, type: "IELTS_WRITING", order: 1, question: "Task 1 – The graph below shows the percentage of households with internet access in four countries between 2000 and 2020. Summarise the information by selecting and reporting the main features, and make comparisons where relevant. Write at least 150 words." },
+      { id: 301, lessonId: 117, type: "IELTS_WRITING", order: 1, question: "Task 2 – Some people believe that technology has made our lives too complicated. To what extent do you agree or disagree? Give reasons for your answer and include any relevant examples from your own knowledge or experience. Write at least 250 words." },
+      { id: 302, lessonId: 118, type: "IELTS_WRITING", order: 1, question: "Task 2 – Some people think that parents should limit the time their children spend watching television or using digital devices. Others think children should be allowed to use these devices freely. Discuss both views and give your own opinion. Write at least 250 words." },
     ]);
 
-    // Unit 14 – Speaking challenges (representative)
+    // Unit 14 – Speaking challenges
     await db.insert(schema.challenges).values([
-      {
-        id: 310, lessonId: 120, type: "IELTS_SPEAKING", order: 1,
-        question: "Part 1 – Tell me about your hometown. What do you like most about where you live? Has it changed much since you were a child?",
-      },
-      {
-        id: 311, lessonId: 122, type: "IELTS_SPEAKING", order: 1,
-        question: "Part 2 – Describe a book or film that had a significant impact on you. You should say: what the book/film was about, when you read/saw it, and explain why it was significant to you. You have 1 minute to prepare. Then speak for 1–2 minutes.",
-      },
-      {
-        id: 312, lessonId: 123, type: "IELTS_SPEAKING", order: 1,
-        question: "Part 3 – Do you think social media has had a positive or negative effect on communication in society? How has the way people communicate changed over the past decade? What role do you think technology will play in communication in the future?",
-      },
+      { id: 310, lessonId: 120, type: "IELTS_SPEAKING", order: 1, question: "Part 1 – Tell me about your hometown. What do you like most about where you live? Has it changed much since you were a child?" },
+      { id: 311, lessonId: 122, type: "IELTS_SPEAKING", order: 1, question: "Part 2 – Describe a book or film that had a significant impact on you. You should say: what the book/film was about, when you read/saw it, and explain why it was significant to you. You have 1 minute to prepare. Then speak for 1–2 minutes." },
+      { id: 312, lessonId: 123, type: "IELTS_SPEAKING", order: 1, question: "Part 3 – Do you think social media has had a positive or negative effect on communication in society? How has the way people communicate changed over the past decade? What role do you think technology will play in communication in the future?" },
     ]);
 
     // Unit 15 – Advanced reading with complex passage
@@ -420,21 +299,9 @@ const main = async () => {
 Critics of epigenetic transmission argue that most such effects are erased in each generation, and that extraordinary claims require extraordinary evidence. Supporters counter that the emerging body of research — particularly studies involving famine survivors and their descendants — provides compelling support for transgenerational epigenetic inheritance in humans.`;
 
     await db.insert(schema.challenges).values([
-      {
-        id: 320, lessonId: 125, type: "IELTS_READING", order: 1,
-        question: "Which heading best describes the second paragraph of the passage?",
-        passage: advancedPassage,
-      },
-      {
-        id: 321, lessonId: 127, type: "IELTS_TFNG", order: 1,
-        question: "Epigenetic changes alter the DNA sequence itself.",
-        passage: advancedPassage,
-      },
-      {
-        id: 322, lessonId: 127, type: "IELTS_TFNG", order: 2,
-        question: "Research on famine survivors supports transgenerational epigenetic inheritance.",
-        passage: advancedPassage,
-      },
+      { id: 320, lessonId: 125, type: "IELTS_READING", order: 1, question: "Which heading best describes the second paragraph of the passage?", passage: advancedPassage },
+      { id: 321, lessonId: 127, type: "IELTS_TFNG", order: 1, question: "Epigenetic changes alter the DNA sequence itself.", passage: advancedPassage },
+      { id: 322, lessonId: 127, type: "IELTS_TFNG", order: 2, question: "Research on famine survivors supports transgenerational epigenetic inheritance.", passage: advancedPassage },
     ]);
 
     await db.insert(schema.challengeOptions).values([
@@ -442,35 +309,25 @@ Critics of epigenetic transmission argue that most such effects are erased in ea
       { challengeId: 320, correct: false, text: "Early History of Genetic Research" },
       { challengeId: 320, correct: true,  text: "The Scientific Debate Over Epigenetic Transmission" },
       { challengeId: 320, correct: false, text: "How Trauma Affects Brain Development" },
-      // 321 – FALSE (epigenetics doesn't change DNA sequence)
-      { challengeId: 321, text: "TRUE",      correct: false },
-      { challengeId: 321, text: "FALSE",     correct: true  },
+      // 321 – FALSE
+      { challengeId: 321, text: "TRUE", correct: false },
+      { challengeId: 321, text: "FALSE", correct: true },
       { challengeId: 321, text: "NOT GIVEN", correct: false },
       // 322 – TRUE
-      { challengeId: 322, text: "TRUE",      correct: true  },
-      { challengeId: 322, text: "FALSE",     correct: false },
+      { challengeId: 322, text: "TRUE", correct: true },
+      { challengeId: 322, text: "FALSE", correct: false },
       { challengeId: 322, text: "NOT GIVEN", correct: false },
     ]);
 
     // Unit 17 – Mock exam writing tasks
     await db.insert(schema.challenges).values([
-      {
-        id: 330, lessonId: 137, type: "IELTS_WRITING", order: 1,
-        question: "MOCK EXAM — Task 1 (20 minutes): The diagrams below show the layout of a sports centre now and after planned renovation. Summarise the information by selecting and reporting the main features, and make comparisons where relevant. Write at least 150 words.",
-      },
-      {
-        id: 331, lessonId: 138, type: "IELTS_WRITING", order: 1,
-        question: "MOCK EXAM — Task 2 (40 minutes): In many countries, more and more young people are choosing to travel or work abroad after finishing school rather than going directly to university or starting a job. Do the advantages of this trend outweigh the disadvantages? Give reasons for your answer and include any relevant examples. Write at least 250 words.",
-      },
-      {
-        id: 332, lessonId: 139, type: "IELTS_SPEAKING", order: 1,
-        question: "MOCK EXAM — Full Speaking Test (14 minutes): Part 1: Answer questions about yourself, your work/studies, and everyday topics. Part 2: Speak for 1–2 minutes about the topic on your cue card. Part 3: Discuss abstract issues related to the Part 2 topic.\n\nCue Card: Describe a skill you have learned that you consider important in your daily life. Say what the skill is, how and when you learned it, and explain why you think this skill is important.",
-      },
+      { id: 330, lessonId: 137, type: "IELTS_WRITING", order: 1, question: "MOCK EXAM — Task 1 (20 minutes): The diagrams below show the layout of a sports centre now and after planned renovation. Summarise the information by selecting and reporting the main features, and make comparisons where relevant. Write at least 150 words." },
+      { id: 331, lessonId: 138, type: "IELTS_WRITING", order: 1, question: "MOCK EXAM — Task 2 (40 minutes): In many countries, more and more young people are choosing to travel or work abroad after finishing school rather than going directly to university or starting a job. Do the advantages of this trend outweigh the disadvantages? Give reasons for your answer and include any relevant examples. Write at least 250 words." },
+      { id: 332, lessonId: 139, type: "IELTS_SPEAKING", order: 1, question: "MOCK EXAM — Full Speaking Test (14 minutes): Part 1: Answer questions about yourself, your work/studies, and everyday topics. Part 2: Speak for 1–2 minutes about the topic on your cue card. Part 3: Discuss abstract issues related to the Part 2 topic.\n\nCue Card: Describe a skill you have learned that you consider important in your daily life. Say what the skill is, how and when you learned it, and explain why you think this skill is important." },
     ]);
 
     console.log("✅ Database seeded successfully!");
-    console.log("   → Spanish course: 2 units, 5 lessons, 9 challenges");
-    console.log("   → English (IELTS) course: 8 units, 40 lessons");
+    console.log("   → English (IELTS) course: 8 units, 40+ lessons");
     console.log("   → Units 1-2 FREE | Units 3-8 PRO");
   } catch (error) {
     console.error("❌ Seeding failed:", error);

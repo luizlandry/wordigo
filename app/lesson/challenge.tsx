@@ -1,15 +1,13 @@
+// app/lesson/challenge.tsx
 "use client";
 
 import { challengeOptions } from "@/db/schema";
 import { cn } from "@/lib/utils";
 import { Card } from "./card";
 import { PassageSpeaker } from "./passage-speaker";
-
-// Correct imports — these files are in app/lesson/ielts/ (same parent folder)
 import { IeltsWriting } from "./ielts/IeltsWriting";
 import { IeltsListening } from "./ielts/IeltsListening";
 import { IeltsSpeaking } from "./ielts/IeltsSpeaking";
-
 import { motion } from "framer-motion";
 
 type ChallengeType =
@@ -29,6 +27,7 @@ type Props = {
   disabled?: boolean;
   type: ChallengeType;
   passage?: string | null;
+  correctOptionId?: number | null; // ✅ New prop
 };
 
 export const Challenge = ({
@@ -39,9 +38,14 @@ export const Challenge = ({
   disabled,
   type,
   passage,
+  correctOptionId,
 }: Props) => {
+  // Helper to determine if a card should be highlighted as correct (when user answered wrong)
+  const isCorrectHighlight = (optionId: number) => {
+    return status === "wrong" && correctOptionId === optionId;
+  };
 
-  // ─── IELTS READING (multiple choice with passage) ─────────────────────
+  // IELTS READING (multiple choice with passage)
   if (type === "IELTS_READING") {
     return (
       <motion.div
@@ -49,21 +53,17 @@ export const Challenge = ({
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col gap-4"
       >
-        {/* Reading passage box with speaker button */}
         {passage && (
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl max-h-56 overflow-y-auto text-sm leading-relaxed text-neutral-700">
             <div className="flex items-center justify-between mb-2">
               <p className="font-bold text-blue-700 text-xs uppercase tracking-wide">
                 Reading Passage
               </p>
-              {/* ✅ NEW: Passage speaker button — user must click to hear passage */}
               <PassageSpeaker text={passage} lang="en-US" />
             </div>
             {passage}
           </div>
         )}
-
-        {/* Selectable answer cards */}
         <div className="grid gap-2 grid-cols-1">
           {options.map((option, i) => (
             <Card
@@ -78,6 +78,7 @@ export const Challenge = ({
               audioSrc={option.audioSrc || ""}
               disabled={disabled}
               type={type}
+              isCorrectHighlight={isCorrectHighlight(option.id)} // ✅ Pass highlight flag
             />
           ))}
         </div>
@@ -85,7 +86,7 @@ export const Challenge = ({
     );
   }
 
-  // ─── IELTS TRUE / FALSE / NOT GIVEN ──────────────────────────────────
+  // IELTS TRUE / FALSE / NOT GIVEN
   if (type === "IELTS_TFNG") {
     return (
       <motion.div
@@ -93,21 +94,17 @@ export const Challenge = ({
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col gap-4"
       >
-        {/* Reading passage box with speaker button */}
         {passage && (
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl max-h-56 overflow-y-auto text-sm leading-relaxed text-neutral-700">
             <div className="flex items-center justify-between mb-2">
               <p className="font-bold text-blue-700 text-xs uppercase tracking-wide">
                 Reading Passage
               </p>
-              {/* ✅ NEW: Passage speaker button — user must click to hear passage */}
               <PassageSpeaker text={passage} lang="en-US" />
             </div>
             {passage}
           </div>
         )}
-
-        {/* TRUE / FALSE / NOT GIVEN cards */}
         <div className="grid gap-2 grid-cols-1">
           {options.map((option, i) => (
             <Card
@@ -122,6 +119,7 @@ export const Challenge = ({
               audioSrc=""
               disabled={disabled}
               type={type}
+              isCorrectHighlight={isCorrectHighlight(option.id)}
             />
           ))}
         </div>
@@ -129,7 +127,7 @@ export const Challenge = ({
     );
   }
 
-  // ─── IELTS WRITING ────────────────────────────────────────────────────
+  // IELTS WRITING
   if (type === "IELTS_WRITING") {
     return (
       <motion.div
@@ -141,7 +139,7 @@ export const Challenge = ({
     );
   }
 
-  // ─── IELTS LISTENING ─────────────────────────────────────────────────
+  // IELTS LISTENING
   if (type === "IELTS_LISTENING") {
     return (
       <motion.div
@@ -156,7 +154,7 @@ export const Challenge = ({
     );
   }
 
-  // ─── IELTS SPEAKING ──────────────────────────────────────────────────
+  // IELTS SPEAKING
   if (type === "IELTS_SPEAKING") {
     return (
       <motion.div
@@ -168,7 +166,7 @@ export const Challenge = ({
     );
   }
 
-  // ─── DEFAULT: SELECT / ASSIST ─────────────────────────────────────────
+  // DEFAULT: SELECT / ASSIST
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -193,6 +191,7 @@ export const Challenge = ({
           audioSrc={option.audioSrc || ""}
           disabled={disabled}
           type={type}
+          isCorrectHighlight={isCorrectHighlight(option.id)}
         />
       ))}
     </motion.div>

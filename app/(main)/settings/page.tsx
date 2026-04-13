@@ -44,7 +44,7 @@ const SettingsPage = async () => {
       <FeedWrapper>
         <div className="w-full flex flex-col items-center">
           <Image
-            src="/mascot.svg"
+            src="/mascot1.svg"
             alt="Settings"
             height={90}
             width={90}

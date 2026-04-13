@@ -8,14 +8,14 @@
     return (
         <div className="flex items-center gap-x-4 mb-6">
             <Image 
-            src="/mascot.svg"
+            src="/mascot1.svg"
             alt="Mascot"
             height={60}
             width={60}
             className="hidden lg:block"
             />
             <Image 
-            src="/mascot.svg"
+            src="/mascot1.svg"
             alt="Mascot"
             height={40}
             width={40}

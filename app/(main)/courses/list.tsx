@@ -1,3 +1,4 @@
+// app/(main)/courses/list.tsx
 "use client"
 
 import { toast } from "sonner";
@@ -16,6 +17,11 @@ export const List = ({ courses, activeCourseId }: Props) => {
     const router = useRouter();
     const [pending, startTransition] = useTransition();
 
+    // Only show English course
+    const englishCourses = courses.filter(course => 
+        course.title === "English " || course.imageSrc === "/en.svg"
+    );
+
     const onClick = (id: number) => {
         if (pending) return;
         if (id === activeCourseId) {
@@ -30,7 +36,7 @@ export const List = ({ courses, activeCourseId }: Props) => {
 
     return (
         <div className="pt-6 grid grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-4">
-            {courses.map((course) => (
+            {englishCourses.map((course) => (
                 <Card
                     key={course.id}
                     id={course.id}

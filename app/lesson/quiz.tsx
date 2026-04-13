@@ -12,7 +12,7 @@ import { challengeOptions, challenges, userSubscription } from "@/db/schema";
 import { ResultCard } from "./result-card";
 import { Header } from "./header";
 import { QuestionBubble } from "./question-bubble";
-import { QuestionSpeaker } from "./question-speaker"; // ✅ NEW
+import { QuestionSpeaker } from "./question-speaker";
 import { Challenge } from "./challenge";
 import { Footer } from "./footer";
 import { upsertChallengeProgress } from "@/actions/challenge-progress";
@@ -21,7 +21,6 @@ import { useHeartsModal } from "@/store/use-hearts-modal";
 import { usePracticeModal } from "@/store/use-practice-modal";
 import { ExamTimer } from "@/components/ExamTimer";
 import { AITutorCard } from "@/components/AITutorCard";
-import { InfinityIcon } from "lucide-react";
 
 type ChallengeWithOptions = typeof challenges.$inferSelect & {
   completed: boolean;
@@ -68,7 +67,6 @@ function mapAiChallenge(
   };
 }
 
-// ── Types that already have their own audio UI — skip the speaker for these ──
 const TYPES_WITH_OWN_AUDIO = ["IELTS_LISTENING", "IELTS_SPEAKING"];
 
 export const Quiz = ({
@@ -117,8 +115,35 @@ export const Quiz = ({
 
   const [selectedOption, setSelectedOption] = useState<number>();
   const [status, setStatus] = useState<"correct" | "wrong" | "none">("none");
+  const [correctOptionId, setCorrectOptionId] = useState<number | null>(null);
 
-  // ── AI IELTS question generation ─────────────────────────────────────────
+  // Helper to map challenge type to weakness category
+  const mapChallengeTypeToWeakness = (type: string): string | null => {
+    switch (type) {
+      case "IELTS_WRITING": return "IELTS_WRITING";
+      case "IELTS_READING": return "IELTS_READING";
+      case "IELTS_LISTENING": return "IELTS_LISTENING";
+      case "IELTS_SPEAKING": return "IELTS_SPEAKING";
+      case "SELECT":
+      case "ASSIST":
+        return "GENERAL";
+      default:
+        return null;
+    }
+  };
+
+  const updateWeakness = (challengeType: string) => {
+    const weaknessType = mapChallengeTypeToWeakness(challengeType);
+    if (weaknessType) {
+      fetch("/api/weakness", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: weaknessType }),
+      }).catch(err => console.error("Failed to update weakness:", err));
+    }
+  };
+
+  // AI IELTS question generation
   useEffect(() => {
     if (mode !== "ielts") return;
     if (challengesList.length === 0) return;
@@ -149,13 +174,11 @@ export const Quiz = ({
       })
       .catch((err) => console.error("AI IELTS load error:", err))
       .finally(() => setAiLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const challenge = challengesList[activeIndex];
   const options = challenge?.challengeOptions ?? [];
 
-  // ── AI Tutor feedback when lesson ends ───────────────────────────────────
   useEffect(() => {
     if (!challenge && weaknesses.length > 0) {
       fetch("/api/ai-tutor", {
@@ -171,7 +194,10 @@ export const Quiz = ({
     if (!challenge && mode !== "exam") finishControls.play();
   }, [challenge, finishControls, mode]);
 
-  const onNext = () => setActiveIndex((cur) => cur + 1);
+  const onNext = () => {
+    setActiveIndex((cur) => cur + 1);
+    setCorrectOptionId(null); // reset correct option highlight
+  };
 
   const onSelect = (id: string | number) => {
     const numericId = typeof id === "string" ? parseInt(id) : id;
@@ -182,7 +208,6 @@ export const Quiz = ({
   const onContinue = () => {
     if (!challenge) return;
 
-    // ── "Next" after wrong answer: question was already re-queued ──────────
     if (status === "wrong") {
       setStatus("none");
       setSelectedOption(undefined);
@@ -220,7 +245,7 @@ export const Quiz = ({
     if (!correctOption) return;
 
     if (correctOption.id === selectedOption) {
-      // ── Correct answer ────────────────────────────────────────────────────
+      // Correct answer
       startTransition(() => {
         const isRealChallenge = challenge.id > 0;
         const progressPromise = isRealChallenge
@@ -254,8 +279,10 @@ export const Quiz = ({
           .catch(() => toast.error("Something went wrong."));
       });
     } else {
-      // ── Wrong answer: re-queue challenge at end ───────────────────────────
+      // Wrong answer: update weakness counters and show correct answer
       setWeaknesses((prev) => [...prev, challenge.type || "general"]);
+      updateWeakness(challenge.type);
+      setCorrectOptionId(correctOption.id); // ✅ Store correct option ID for highlighting
 
       setChallengesList((prev) => [
         ...prev,
@@ -283,7 +310,6 @@ export const Quiz = ({
     }
   };
 
-  // ── Whether to show the speaker for the current question type ─────────────
   const showSpeaker =
     challenge &&
     !TYPES_WITH_OWN_AUDIO.includes(challenge.type) &&
@@ -297,13 +323,9 @@ export const Quiz = ({
 
       {!challenge ? (
         <>
-          {mode !== "exam" && (
-            <Confetti width={width} height={height} recycle={false} />
-          )}
-
+          {mode !== "exam" && <Confetti width={width} height={height} recycle={false} />}
           <div className="flex flex-col gap-y-4 max-w-lg mx-auto text-center items-center justify-center h-full">
             <Image src="/finish.svg" alt="Finish" height={100} width={100} />
-
             <h1 className="text-xl font-bold">
               {mode === "exam"
                 ? "Exam Completed 🎉"
@@ -311,66 +333,42 @@ export const Quiz = ({
                 ? "IELTS Lesson Complete! 🎓"
                 : "Great job! You have completed the lesson."}
             </h1>
-
             {mode === "ielts" && (
               <p className="text-sm text-muted-foreground max-w-xs">
                 Keep practising daily to improve your IELTS band score. Each lesson
                 brings you closer to your target!
               </p>
             )}
-
             <div className="flex items-center gap-x-4 w-full">
-              <ResultCard
-                variant="points"
-                value={mode === "exam" ? 0 : challengesList.length * 5}
-              />
+              <ResultCard variant="points" value={mode === "exam" ? 0 : challengesList.length * 5} />
               <ResultCard variant="hearts" value={hearts} isPro={isPro} />
             </div>
-
             {aiFeedback && <AITutorCard feedback={aiFeedback} />}
           </div>
-
           <button
             onClick={() => router.push("/learn")}
             className="mt-4 px-6 py-2 bg-green-500 text-white rounded-xl shadow block mx-auto"
           >
             Continue Learning
           </button>
-
           <Footer
             lessonId={lessonId}
             status="completed"
             disabled={false}
-            onClick={() =>
-              router.push(mode === "exam" ? "/exam/result" : "/learn")
-            }
+            onClick={() => router.push(mode === "exam" ? "/exam/result" : "/learn")}
           />
         </>
       ) : (
         <>
-          {mode === "exam" && (
-            <ExamTimer
-              duration={60 * 60}
-              onTimeUp={() => router.push("/exam/result")}
-            />
-          )}
-
+          {mode === "exam" && <ExamTimer duration={60 * 60} onTimeUp={() => router.push("/exam/result")} />}
           {aiLoading && mode === "ielts" && (
             <div className="text-center text-xs text-blue-500 py-1 animate-pulse">
               ✨ Loading AI-generated questions...
             </div>
           )}
-
-          <Header
-            hearts={hearts}
-            percentage={percentage}
-            hasActiveSubscription={isPro}
-          />
-
+          <Header hearts={hearts} percentage={percentage} hasActiveSubscription={isPro} />
           <div className="flex-1 flex items-center justify-center">
             <div className="lg:w-[600px] w-full px-6 flex flex-col gap-y-12">
-
-              {/* IELTS mode badge */}
               {mode === "ielts" && (
                 <div className="flex items-center gap-2">
                   <span className="bg-blue-100 text-blue-600 text-xs font-bold px-3 py-1 rounded-full">
@@ -388,39 +386,18 @@ export const Quiz = ({
                   )}
                 </div>
               )}
-
-              {/*
-               * ── Question title + speaker icon ──────────────────────────────
-               * We wrap the <h1> and <QuestionSpeaker> in a flex row so the
-               * speaker icon sits right beside the question text.
-               * The speaker is hidden for IELTS_LISTENING and IELTS_SPEAKING
-               * because those already have their own audio controls.
-               */}
               <div className="flex items-center justify-center gap-x-3">
                 <h1 className="text-lg font-bold text-center">
-                  {challenge.type === "ASSIST"
-                    ? "Select the correct meaning"
-                    : challenge.question}
+                  {challenge.type === "ASSIST" ? "Select the correct meaning" : challenge.question}
                 </h1>
-
-                {/* ✅ Speaker button — reads question aloud (auto + on click) */}
                 {showSpeaker && (
                   <QuestionSpeaker
-                    text={
-                      challenge.type === "ASSIST"
-                        ? challenge.question          // read the actual word even if heading says "Select the correct meaning"
-                        : challenge.question
-                    }
+                    text={challenge.type === "ASSIST" ? challenge.question : challenge.question}
                     lang="en-US"
                   />
                 )}
               </div>
-
-              {/* ASSIST type shows the question in a speech bubble too */}
-              {challenge.type === "ASSIST" && (
-                <QuestionBubble question={challenge.question} />
-              )}
-
+              {challenge.type === "ASSIST" && <QuestionBubble question={challenge.question} />}
               <Challenge
                 options={options}
                 onSelect={onSelect}
@@ -429,15 +406,18 @@ export const Quiz = ({
                 disabled={pending}
                 type={challenge.type}
                 passage={challenge.passage}
+                correctOptionId={correctOptionId} // ✅ Pass correct option ID
               />
             </div>
           </div>
-
           <Footer
             lessonId={lessonId}
             disabled={pending || !selectedOption}
             status={status}
             onClick={onContinue}
+            correctAnswerText={status === "wrong" && correctOptionId 
+              ? options.find(opt => opt.id === correctOptionId)?.text 
+              : undefined}
           />
         </>
       )}

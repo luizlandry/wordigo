@@ -1,3 +1,4 @@
+// app/api/weakness/route.ts
 import { NextResponse } from "next/server";
 import { db } from "@/db/drizzle";
 import { userProgress } from "@/db/schema";
@@ -10,12 +11,27 @@ export async function POST(req: Request) {
 
   if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
+  const user = await db.query.userProgress.findFirst({
+    where: eq(userProgress.userId, userId),
+  });
+
+  if (!user) return new NextResponse("User not found", { status: 404 });
+
   const update: any = {};
 
-  if (type === "IELTS_WRITING") update.weakGrammar = 1;
-  if (type === "IELTS_READING") update.weakReading = 1;
-  if (type === "IELTS_LISTENING") update.weakListening = 1;
-  if (type === "IELTS_SPEAKING") update.weakVocabulary = 1;
+  // Increment the appropriate weakness counter
+  if (type === "IELTS_WRITING" || type === "GENERAL") {
+    update.weakGrammar = (user.weakGrammar || 0) + 1;
+  }
+  if (type === "IELTS_READING") {
+    update.weakReading = (user.weakReading || 0) + 1;
+  }
+  if (type === "IELTS_LISTENING") {
+    update.weakListening = (user.weakListening || 0) + 1;
+  }
+  if (type === "IELTS_SPEAKING") {
+    update.weakVocabulary = (user.weakVocabulary || 0) + 1;
+  }
 
   await db
     .update(userProgress)

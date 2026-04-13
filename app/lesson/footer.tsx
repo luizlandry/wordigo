@@ -10,6 +10,7 @@ type Props = {
   status: "correct" | "wrong" | "none" | "completed";
   disabled: boolean;
   lessonId: number;
+  correctAnswerText?: string; // ✅ New prop
 };
 
 export const Footer = ({
@@ -17,6 +18,7 @@ export const Footer = ({
   status,
   disabled,
   lessonId,
+  correctAnswerText,
 }: Props) => {
   useKey("Enter", onClick, {}, [onClick]);
   const isMobile = useMedia("(max-width: 1024px)");
@@ -28,32 +30,41 @@ export const Footer = ({
       status === "wrong" && "border-transparent bg-rose-100",
     )}>
       <div className="max-w-[1140px] h-full mx-auto flex items-center justify-between px-6 lg:px-10">
+        {/* Left side - feedback message */}
+        <div className="flex-1">
+          {status === "correct" && (
+            <div className="text-green-500 font-bold text-base lg:text-2xl flex items-center">
+              <CheckCircle className="h-6 w-6 lg:h-10 lg:w-10 mr-4" />
+              Nicely done!
+            </div>
+          )}
 
-        {status === "correct" && (
-          <div className="text-green-500 font-bold text-base lg:text-2xl flex items-center">
-            <CheckCircle className="h-6 w-6 lg:h-10 lg:w-10 mr-4" />
-            Nicely done!
-          </div>
-        )}
+          {status === "wrong" && (
+            <div className="text-rose-500 font-bold text-base lg:text-xl flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-4">
+              <div className="flex items-center">
+                <XCircle className="h-6 w-6 lg:h-8 lg:w-8 mr-3" />
+                <span>Incorrect — it will appear again later!</span>
+              </div>
+              {correctAnswerText && (
+                <div className="text-green-600 text-sm lg:text-base font-medium bg-white/50 px-3 py-1 rounded-full">
+                  ✅ Correct answer: {correctAnswerText}
+                </div>
+              )}
+            </div>
+          )}
 
-        {status === "wrong" && (
-          <div className="text-rose-500 font-bold text-base lg:text-2xl flex items-center">
-            <XCircle className="h-6 w-6 lg:h-10 lg:w-10 mr-4" />
-            {/* ✅ FIX: Inform user the question will come back */}
-            Incorrect — it will appear again later!
-          </div>
-        )}
+          {status === "completed" && (
+            <Button
+              variant="default"
+              size={isMobile ? "sm" : "lg"}
+              onClick={() => window.location.href = `/lesson/${lessonId}`}
+            >
+              Practice again
+            </Button>
+          )}
+        </div>
 
-        {status === "completed" && (
-          <Button
-            variant="default"
-            size={isMobile ? "sm" : "lg"}
-            onClick={() => window.location.href = `/lesson/${lessonId}`}
-          >
-            Practice again
-          </Button>
-        )}
-
+        {/* Right side - action button */}
         <Button
           disabled={disabled}
           className="ml-auto"
@@ -63,7 +74,6 @@ export const Footer = ({
         >
           {status === "none" && "Check"}
           {status === "correct" && "Next"}
-          {/* ✅ FIX: "Retry" → "Next" — question is re-added at end of quiz */}
           {status === "wrong" && "Next"}
           {status === "completed" && "Continue"}
         </Button>
